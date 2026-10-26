@@ -24,7 +24,7 @@ dependencyResolutionManagement {
 rootProject.name = "easemob-demo-android"
 include(":app")
 
-//include(":ease-im-kit")
+include(":ease-im-kit")
 //project(":ease-im-kit").projectDir = File("../easemob-uikit-android/ease-im-kit")
 //
 //include(":ease-call-kit")

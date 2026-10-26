@@ -1,0 +1,1348 @@
+package com.hyphenate.easeui.common
+
+import com.hyphenate.EMMultiDeviceListener.CONTACT_ACCEPT
+import com.hyphenate.EMMultiDeviceListener.CONTACT_REMOVE
+import com.hyphenate.EMMultiDeviceListener.GROUP_CREATE
+import com.hyphenate.EMMultiDeviceListener.GROUP_DESTROY
+import com.hyphenate.EMMultiDeviceListener.GROUP_JOIN
+import com.hyphenate.EMMultiDeviceListener.GROUP_LEAVE
+import com.hyphenate.chat.EMContact
+import com.hyphenate.chat.EMOptions.EMDataSyncType
+import com.hyphenate.chat.EMUserInfoManagerListener
+import com.hyphenate.easeui.ChatUIKitClient
+import com.hyphenate.easeui.common.bus.ChatUIKitFlowBus
+import com.hyphenate.easeui.common.extensions.createUnsentMessage
+import com.hyphenate.easeui.common.extensions.getUserInfo
+import com.hyphenate.easeui.common.extensions.isGroupChat
+import com.hyphenate.easeui.common.extensions.mainScope
+import com.hyphenate.easeui.common.extensions.parse
+import com.hyphenate.easeui.common.extensions.toProfile
+import com.hyphenate.easeui.common.helper.ChatUIKitAtMessageHelper
+import com.hyphenate.easeui.feature.invitation.enums.InviteMessageStatus
+import com.hyphenate.easeui.feature.invitation.helper.ChatUIKitNotificationMsgManager
+import com.hyphenate.easeui.feature.invitation.helper.RequestMsgHelper
+import com.hyphenate.easeui.interfaces.OnEventResultListener
+import com.hyphenate.easeui.model.ChatUIKitDataSyncEvent
+import com.hyphenate.easeui.model.ChatUIKitEvent
+import com.hyphenate.easeui.model.toUIKitEventType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.util.Collections
+import kotlin.collections.filter
+import kotlin.collections.map
+
+
+internal class ChatListenersWrapper : ChatConnectionListener, ChatMessageListener, ChatGroupChangeListener,
+    ChatContactListener, ChatConversationListener, ChatPresenceListener,
+    ChatMultiDeviceListener, ChatThreadChangeListener, EMUserInfoManagerListener {
+
+    private val chatConnectionListener = Collections.synchronizedList(mutableListOf<ChatConnectionListener>())
+    private val chatMessageListener = Collections.synchronizedList(mutableListOf<ChatMessageListener>())
+    private val chatGroupChangeListener = Collections.synchronizedList(mutableListOf<ChatGroupChangeListener>())
+    private val chatContactListener = Collections.synchronizedList(mutableListOf<ChatContactListener>())
+    private val chatConversationListener = Collections.synchronizedList(mutableListOf<ChatConversationListener>())
+    private val chatPresenceListener = Collections.synchronizedList(mutableListOf<ChatPresenceListener>())
+    private val chatRoomChangeListener = Collections.synchronizedList(mutableListOf<ChatRoomChangeListener>())
+    private val chatMultiDeviceListener = Collections.synchronizedList(mutableListOf<ChatMultiDeviceListener>())
+    private val eventResultListener = Collections.synchronizedList(mutableListOf<OnEventResultListener>())
+    private val chatThreadChangeListener = Collections.synchronizedList(mutableListOf<ChatThreadChangeListener>())
+
+    fun addListeners(){
+        ChatClient.getInstance().addConnectionListener(this)
+        ChatClient.getInstance().chatManager().addMessageListener(this)
+        ChatClient.getInstance().chatManager().addConversationListener(this)
+        ChatClient.getInstance().groupManager().addGroupChangeListener(this)
+        ChatClient.getInstance().contactManager().setContactListener(this)
+        ChatClient.getInstance().presenceManager().addListener(this)
+        ChatClient.getInstance().chatroomManager().addChatRoomChangeListener(chatroomListener)
+        ChatClient.getInstance().addMultiDeviceListener(this)
+        ChatClient.getInstance().chatThreadManager().addChatThreadChangeListener(this)
+        ChatClient.getInstance().userInfoManager().addUserInfoManagerListener(this)
+    }
+
+    fun removeListeners(){
+        ChatClient.getInstance().removeConnectionListener(this)
+        ChatClient.getInstance().chatManager().removeMessageListener(this)
+        ChatClient.getInstance().chatManager().removeConversationListener(this)
+        ChatClient.getInstance().groupManager().removeGroupChangeListener(this)
+        ChatClient.getInstance().contactManager().removeContactListener(this)
+        ChatClient.getInstance().presenceManager().removeListener(this)
+        ChatClient.getInstance().chatroomManager().removeChatRoomChangeListener(chatroomListener)
+        ChatClient.getInstance().removeMultiDeviceListener(this)
+        ChatClient.getInstance().chatThreadManager().removeChatThreadChangeListener(this)
+        ChatClient.getInstance().userInfoManager().removeUserInfoManagerListener(this)
+
+        chatConnectionListener.clear()
+        chatMessageListener.clear()
+        chatGroupChangeListener.clear()
+        chatContactListener.clear()
+        chatConversationListener.clear()
+        chatPresenceListener.clear()
+        chatRoomChangeListener.clear()
+        chatMultiDeviceListener.clear()
+        chatThreadChangeListener.clear()
+    }
+
+    fun addConnectionListener(listener: ChatConnectionListener){
+        if (chatConnectionListener.contains(listener)) return
+        chatConnectionListener.add(listener)
+    }
+
+    fun removeConnectionListener(listener: ChatConnectionListener){
+        chatConnectionListener.remove(listener)
+    }
+
+    fun addChatMessageListener(listener:ChatMessageListener){
+        if (chatMessageListener.contains(listener)) return
+        chatMessageListener.add(listener)
+    }
+
+    fun removeChatMessageListener(listener:ChatMessageListener){
+        chatMessageListener.remove(listener)
+    }
+
+    fun addGroupChangeListener(listener:ChatGroupChangeListener){
+        if (chatGroupChangeListener.contains(listener)) return
+        chatGroupChangeListener.add(listener)
+    }
+
+    fun removeGroupChangeListener(listener:ChatGroupChangeListener){
+        chatGroupChangeListener.remove(listener)
+    }
+
+    fun addContactListener(listener:ChatContactListener){
+        if (chatContactListener.contains(listener)) return
+        chatContactListener.add(listener)
+    }
+
+    fun removeContactListener(listener:ChatContactListener){
+        chatContactListener.remove(listener)
+    }
+
+    fun addConversationListener(listener:ChatConversationListener){
+        if (chatConversationListener.contains(listener)) return
+        chatConversationListener.add(listener)
+    }
+
+    fun removeConversationListener(listener:ChatConversationListener){
+        chatConversationListener.remove(listener)
+    }
+
+    fun addPresenceListener(listener:ChatPresenceListener){
+        if (chatPresenceListener.contains(listener)) return
+        chatPresenceListener.add(listener)
+    }
+
+    fun removePresenceListener(listener:ChatPresenceListener){
+        chatPresenceListener.remove(listener)
+    }
+
+    fun addChatRoomChangeListener(listener:ChatRoomChangeListener){
+        if (chatRoomChangeListener.contains(listener)) return
+        chatRoomChangeListener.add(listener)
+    }
+
+    fun removeChatRoomChangeListener(listener:ChatRoomChangeListener){
+        chatRoomChangeListener.remove(listener)
+    }
+
+    fun addMultiDeviceListener(listener:ChatMultiDeviceListener){
+        if (chatMultiDeviceListener.contains(listener)) return
+        chatMultiDeviceListener.add(listener)
+    }
+
+    fun removeMultiDeviceListener(listener:ChatMultiDeviceListener){
+        chatMultiDeviceListener.remove(listener)
+    }
+
+    fun addEventResultListener(listener:OnEventResultListener){
+        if (eventResultListener.contains(listener)) return
+        eventResultListener.add(listener)
+    }
+
+    fun removeEventResultListener(listener:OnEventResultListener){
+        eventResultListener.remove(listener)
+    }
+
+    fun addThreadChangeListener(listener:ChatThreadChangeListener){
+        chatThreadChangeListener.add(listener)
+    }
+
+    fun removeThreadChangeListener(listener:ChatThreadChangeListener){
+        chatThreadChangeListener.remove(listener)
+    }
+
+    companion object {
+
+        private var instance: ChatListenersWrapper? = null
+
+        fun getInstance(): ChatListenersWrapper {
+            if (instance == null) {
+                synchronized(ChatListenersWrapper::class.java) {
+                    if (instance == null) {
+                        instance = ChatListenersWrapper()
+                    }
+                }
+            }
+            return instance!!
+        }
+    }
+
+
+    /**  ChatConnectionListener  */
+    override fun onConnected() {
+        chatConnectionListener.let {
+            for (connectionListener in it) {
+                try {
+                    connectionListener.onConnected()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onDisconnected(errorCode: Int) {
+        chatConnectionListener.let {
+            for (connectionListener in it) {
+                try {
+                    connectionListener.onDisconnected(errorCode)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onTokenWillExpire() {
+        chatConnectionListener.let {
+            for (connectionListener in it) {
+                try {
+                    connectionListener.onTokenWillExpire()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onTokenExpired() {
+        chatConnectionListener.let {
+            for (connectionListener in it) {
+                try {
+                    connectionListener.onTokenExpired()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onLogout(errorCode: Int, info: ChatLoginExtensionInfo?) {
+        chatConnectionListener.let {
+            for (connectionListener in it) {
+                try {
+                    connectionListener.onLogout(errorCode, info)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onDatabaseOpened(username: String?) {
+        // DB 打开后、联系人回调到达前建立历史申请基线，防止升级后旧申请被重新计为未读。
+        ChatUIKitNotificationMsgManager.getInstance().initializeRequestReadCursor()
+        notifyDataChanged(ChatUIKitEvent.TYPE.CONVERSATION)
+        notifyDataChanged(ChatUIKitEvent.TYPE.CONTACT)
+        notifyDataChanged(ChatUIKitEvent.TYPE.GROUP)
+        chatConnectionListener.let {
+            for (connectionListener in it) {
+                try {
+                    connectionListener.onDatabaseOpened(username)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onDataSyncStart(type: EMDataSyncType?) {
+        postDataSyncState(type, ChatUIKitDataSyncEvent.STATE.STARTED)
+        chatConnectionListener.let {
+            for (connectionListener in it) {
+                try {
+                    connectionListener.onDataSyncStart(type)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onDataSyncFinish(type: EMDataSyncType?, errorCode: Int) {
+        postDataSyncState(type, ChatUIKitDataSyncEvent.STATE.FINISHED, errorCode)
+        if (errorCode == ChatError.EM_NO_ERROR) {
+            type.toUIKitEventType()?.let(::notifyDataChanged)
+        }
+        chatConnectionListener.let {
+            for (connectionListener in it) {
+                try {
+                    connectionListener.onDataSyncFinish(type, errorCode)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onOfflineMessageSyncStart() {
+
+    }
+
+    override fun onOfflineMessageSyncFinish() {
+
+    }
+
+    /**  ChatConnectionListener  */
+    override fun onMessageReceived(messages: MutableList<ChatMessage>?) {
+        // Update message userinfo when receive messages.
+        CoroutineScope(Dispatchers.IO).launch {
+            messages?.forEach { msg ->
+                msg.getUserInfo(true)
+            }
+            try {
+                ChatUIKitAtMessageHelper.get().parseMessages(messages)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        chatMessageListener.let {
+            for (messageListener in it) {
+                try {
+                    messageListener.onMessageReceived(messages)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onCmdMessageReceived(messages: MutableList<ChatMessage>?) {
+        chatMessageListener.let {
+            for (messageListener in it) {
+                try {
+                    messageListener.onCmdMessageReceived(messages)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onMessageReadReceipts(receipts: MutableList<ChatMessageReadReceipt>?) {
+        chatMessageListener.let {
+            for (messageListener in it) {
+                try {
+                    messageListener.onMessageReadReceipts(receipts)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onMessageChanged(message: ChatMessage?, change: Any?) {
+        chatMessageListener.let {
+            for (messageListener in it) {
+                try {
+                    messageListener.onMessageChanged(message, change)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onMessageContentChanged(
+        messageModified: ChatMessage?,
+        operatorId: String?,
+        operationTime: Long
+    ) {
+        chatMessageListener.let {
+            for (messageListener in it) {
+                try {
+                    messageListener.onMessageContentChanged(messageModified,operatorId,operationTime)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onMessageDelivered(messages: MutableList<ChatMessage>?) {
+        chatMessageListener.let {
+            for (messageListener in it) {
+                try {
+                    messageListener.onMessageDelivered(messages)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onMessageRecalledWithExt(recallMessageInfo: MutableList<ChatRecallMessageInfo>?) {
+        if (recallMessageInfo != null && recallMessageInfo.size > 0) {
+            for (recallMessage in recallMessageInfo) {
+                recallMessage.recallMessage?.let {
+                    if (it.isGroupChat() && ChatUIKitAtMessageHelper.get().isAtMeMsg(it)) {
+                        ChatUIKitAtMessageHelper.get().removeAtMeGroup(it.conversationId())
+                    }
+                }
+                val receiveMessage = ChatMessage.createReceiveMessage(ChatMessageType.TXT).apply {
+                    msgId =recallMessage.recallMessageId // 使用被撤回消息的 ID
+                    from = recallMessage.recallBy // 撤回者 ID
+                    chatType = recallMessage.recallMessage?.chatType // 聊天类型（单聊/群聊等）
+                }
+                val recallMsg = receiveMessage.createUnsentMessage(true)
+                ChatClient.getInstance().chatManager().getConversation(recallMessage.conversationId).insertMessage(recallMsg)
+            }
+        }
+        chatMessageListener.let {
+            for (messageListener in it) {
+                try {
+                    messageListener.onMessageRecalledWithExt(recallMessageInfo)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onReactionChanged(messageReactionChangeList: MutableList<ChatMessageReactionChange>?) {
+        chatMessageListener.let {
+            for (messageListener in it) {
+                try {
+                    messageListener.onReactionChanged(messageReactionChangeList)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onMessagePinChanged(
+        messageId: String?,
+        conversationId: String?,
+        pinOperation: ChatMessagePinOperation?,
+        pinInfo: ChatMessagePinInfo?
+    ) {
+        ChatLog.d("ChatListenersWrapper", "onMessagePinChanged messageId:$messageId conversationId:$conversationId pinOperation:$pinOperation pinInfo:$pinInfo")
+        chatMessageListener.let {
+            for (messageListener in it) {
+                try {
+                    messageListener.onMessagePinChanged(messageId, conversationId, pinOperation, pinInfo)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    ChatLog.e("ChatListenersWrapper", "onMessagePinChanged error:${e.message}")
+                }
+            }
+        }
+    }
+
+    /**  GroupChangeListener  */
+    override fun onInvitationReceived(
+        groupId: String?,
+        groupName: String?,
+        inviter: String?,
+        reason: String?
+    ) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onInvitationReceived(groupId,groupName,inviter,reason)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onRequestToJoinReceived(
+        groupId: String?,
+        groupName: String?,
+        applicant: String?,
+        reason: String?
+    ) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onRequestToJoinReceived(groupId,groupName,applicant,reason)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onRequestToJoinAccepted(groupId: String?, groupName: String?, accepter: String?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onRequestToJoinAccepted(groupId,groupName,accepter)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onRequestToJoinDeclined(
+        groupId: String?,
+        groupName: String?,
+        decliner: String?,
+        reason: String?,
+        applicant: String?
+    ) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onRequestToJoinDeclined(groupId,groupName,decliner,reason, applicant)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+
+    override fun onInvitationAccepted(groupId: String?, invitee: String?, reason: String?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onInvitationAccepted(groupId,invitee,reason)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onInvitationDeclined(groupId: String?, invitee: String?, reason: String?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onInvitationDeclined(groupId,invitee,reason)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onUserRemoved(groupId: String?, groupName: String?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onUserRemoved(groupId,groupName)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onGroupDestroyed(groupId: String?, groupName: String?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onGroupDestroyed(groupId,groupName)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onAutoAcceptInvitationFromGroup(
+        groupId: String?,
+        inviter: String?,
+        inviteMessage: String?
+    ) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onAutoAcceptInvitationFromGroup(groupId,inviter,inviteMessage)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onMuteListAdded(groupId: String?, mutes: MutableList<String>?, muteExpire: Long) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onMuteListAdded(groupId,mutes,muteExpire)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onMuteListRemoved(groupId: String?, mutes: MutableList<String>?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onMuteListRemoved(groupId,mutes)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onWhiteListAdded(groupId: String?, whitelist: MutableList<String>?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onWhiteListAdded(groupId,whitelist)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onWhiteListRemoved(groupId: String?, whitelist: MutableList<String>?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onWhiteListRemoved(groupId,whitelist)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onAllMemberMuteStateChanged(groupId: String?, isMuted: Boolean) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onAllMemberMuteStateChanged(groupId,isMuted)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onAdminAdded(groupId: String?, administrator: String?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onAdminAdded(groupId,administrator)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onAdminRemoved(groupId: String?, administrator: String?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onAdminRemoved(groupId,administrator)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onOwnerChanged(groupId: String?, newOwner: String?, oldOwner: String?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onOwnerChanged(groupId,newOwner,oldOwner)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onMembersJoined(groupId: String?, members:List<String>) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onMembersJoined(groupId,members)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onMembersExited(groupId: String?, members: List<String>) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onMembersExited(groupId,members)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onAnnouncementChanged(groupId: String?, announcement: String?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onAnnouncementChanged(groupId,announcement)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onSharedFileAdded(groupId: String?, sharedFile: ChatShareFile?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onSharedFileAdded(groupId,sharedFile)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onSharedFileDeleted(groupId: String?, fileId: String?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onSharedFileDeleted(groupId,fileId)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onSpecificationChanged(group: ChatGroup?) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onSpecificationChanged(group)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onGroupMemberAttributeChanged(
+        groupId: String?,
+        userId: String?,
+        attribute: MutableMap<String, String>?,
+        from: String?
+    ) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onGroupMemberAttributeChanged(groupId, userId, attribute, from)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onStateChanged(group: ChatGroup?, isDisabled: Boolean) {
+        chatGroupChangeListener.let {
+            for (groupListener in it) {
+                try {
+                    groupListener.onStateChanged(group, isDisabled)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    /**  ContactListener  */
+    override fun onContactAdded(username: String?) {
+        chatContactListener.let {
+            for (contactListener in it) {
+                try {
+                    contactListener.onContactAdded(username)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onContactDeleted(username: String?) {
+        deleteDefaultContactAgreedMsg(username)
+        chatContactListener.let {
+            for (contactListener in it) {
+                try {
+                    contactListener.onContactDeleted(username)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onContactInvited(username: String?, reason: String?) {
+        saveDefaultContactInvitedMsg(username, reason)
+        chatContactListener.let {
+            for (contactListener in it) {
+                try {
+                    contactListener.onContactInvited(username,reason)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onFriendRequestAccepted(username: String?) {
+        chatContactListener.let {
+            for (contactListener in it) {
+                try {
+                    contactListener.onFriendRequestAccepted(username)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onFriendRequestDeclined(username: String?) {
+        chatContactListener.let {
+            for (contactListener in it) {
+                try {
+                    contactListener.onFriendRequestDeclined(username)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onContactInfoUpdate(contact: EMContact?) {
+        chatContactListener.let {
+            for (contactListener in it) {
+                try {
+                    contactListener.onContactInfoUpdate(contact)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    /**  EMUserInfoManagerListener  */
+    override fun onSelfUserInfoUpdate(userInfo: ChatUserInfo?) {
+        userInfo?.let { updateUserInfoCache(listOf(it)) }
+    }
+
+    override fun onUserInfoUpdate(userInfoList: MutableList<ChatUserInfo>?) {
+        userInfoList?.let { updateUserInfoCache(it) }
+    }
+
+    /**
+     * Update the user info cache with the user attributes synced by the SDK,
+     * then notify the UI to refresh the avatar and nickname.
+     */
+    private fun updateUserInfoCache(userInfoList: List<ChatUserInfo>) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val profiles = userInfoList.map { info ->
+                info.parse().toProfile().apply {
+                    // The remark is not part of the user attributes, keep the cached one.
+                    if (remark.isNullOrEmpty()) {
+                        remark = ChatUIKitClient.getCache().getSdkUser(info.userId)?.remark
+                    }
+                }
+            }
+            if (profiles.isNotEmpty()) {
+                ChatUIKitClient.getCache().updateSdkUsers(profiles)
+                notifyDataChanged(ChatUIKitEvent.TYPE.CONTACT)
+                notifyDataChanged(ChatUIKitEvent.TYPE.CONVERSATION)
+            }
+        }
+    }
+
+    private fun postDataSyncState(
+        type: EMDataSyncType?,
+        state: ChatUIKitDataSyncEvent.STATE,
+        errorCode: Int? = null,
+    ) {
+        if (type == null || type == EMDataSyncType.NONE) return
+        ChatUIKitClient.getContext()?.let { context ->
+            ChatUIKitFlowBus
+                .withStick<ChatUIKitDataSyncEvent>(ChatUIKitDataSyncEvent.eventKey(type))
+                .post(context.mainScope(), ChatUIKitDataSyncEvent(type, state, errorCode))
+        }
+    }
+
+    private fun notifyDataChanged(type: ChatUIKitEvent.TYPE) {
+        ChatUIKitClient.getContext()?.let { context ->
+            ChatUIKitFlowBus.with<ChatUIKitEvent>(ChatUIKitEvent.EVENT.UPDATE + type)
+                .post(
+                    context.mainScope(),
+                    ChatUIKitEvent(ChatUIKitEvent.EVENT.UPDATE.name, type),
+                )
+        }
+    }
+
+    /**  ConversationListener  */
+    override fun onConversationUpdate() {
+        chatConversationListener.let {
+            for (conversationListener in it) {
+                try {
+                    conversationListener.onConversationUpdate()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    /**  PresenceListener  */
+    override fun onPresenceUpdated(presences: MutableList<ChatPresence>?) {
+        chatPresenceListener.let {
+            for (conversationListener in it) {
+                try {
+                    conversationListener.onPresenceUpdated(presences)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    /**  ChatRoomChangeListener  */
+    private val chatroomListener by lazy { object : ChatRoomChangeListener{
+
+        override fun onChatRoomDestroyed(roomId: String?, roomName: String?) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onChatRoomDestroyed(roomId,roomName)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onMemberJoined(roomId: String?, participant: String?, ext: String?) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onMemberJoined(roomId,participant,ext)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onMemberExited(roomId: String?, roomName: String?, participant: String?) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onMemberExited(roomId,roomName,participant)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onRemovedFromChatRoom(
+            reason: Int,
+            roomId: String?,
+            roomName: String?,
+            participant: String?
+        ) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onRemovedFromChatRoom(reason,roomId,roomName,participant)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onMuteListAdded(
+            chatRoomId: String?,
+            muteInfo: Map<String, Long>?
+        ) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onMuteListAdded(chatRoomId, muteInfo)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onMuteListRemoved(chatRoomId: String?, mutes: MutableList<String>?) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onMuteListRemoved(chatRoomId, mutes)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onWhiteListAdded(chatRoomId: String?, whitelist: MutableList<String>?) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onWhiteListAdded(chatRoomId, whitelist)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onWhiteListRemoved(chatRoomId: String?, whitelist: MutableList<String>?) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onWhiteListRemoved(chatRoomId, whitelist)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onAllMemberMuteStateChanged(chatRoomId: String?, isMuted: Boolean) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onAllMemberMuteStateChanged(chatRoomId, isMuted)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onAdminAdded(chatRoomId: String?, admin: String?) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onAdminAdded(chatRoomId, admin)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onAdminRemoved(chatRoomId: String?, admin: String?) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onAdminRemoved(chatRoomId, admin)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onOwnerChanged(chatRoomId: String?, newOwner: String?, oldOwner: String?) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onOwnerChanged(chatRoomId, newOwner, oldOwner)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        override fun onAnnouncementChanged(chatRoomId: String?, announcement: String?) {
+            chatRoomChangeListener.let {
+                for (chatroomListener in it) {
+                    try {
+                        chatroomListener.onAnnouncementChanged(chatRoomId, announcement)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+    }}
+
+    /**  MultiDeviceListener  */
+    override fun onContactEvent(event: Int, target: String?, ext: String?) {
+        defaultMultiDeviceContactEvent(event,target,ext)
+        chatMultiDeviceListener.let {
+            for (emMultiDeviceListener in it) {
+                try {
+                    emMultiDeviceListener.onContactEvent(event,target,ext)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onGroupEvent(event: Int, target: String?, usernames: MutableList<String>?) {
+        defaultMultiDeviceGroupEvent(event,target,usernames)
+        chatMultiDeviceListener.let {
+            for (emMultiDeviceListener in it) {
+                try {
+                    emMultiDeviceListener.onGroupEvent(event,target,usernames)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onConversationEvent(
+        event: Int,
+        conversationId: String?,
+        type: ChatConversationType?
+    ) {
+        chatMultiDeviceListener.let {
+            for (emMultiDeviceListener in it) {
+                try {
+                    emMultiDeviceListener.onConversationEvent(event, conversationId, type)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onMessageRemoved(conversationId: String?, deviceId: String?) {
+        chatMultiDeviceListener.let {
+            for (emMultiDeviceListener in it) {
+                try {
+                    emMultiDeviceListener.onMessageRemoved(conversationId, deviceId)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onChatThreadEvent(event: Int, target: String?, usernames: MutableList<String>?) {
+        chatMultiDeviceListener.let {
+            for (emMultiDeviceListener in it) {
+                try {
+                    emMultiDeviceListener.onChatThreadEvent(event, target, usernames)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    /**  ThreadChangeListener  */
+    override fun onChatThreadCreated(event: ChatThreadEvent?) {
+        chatThreadChangeListener.let {
+            for (emChatThreadChangeListener in it) {
+                try {
+                    emChatThreadChangeListener.onChatThreadCreated(event)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onChatThreadUpdated(event: ChatThreadEvent?) {
+        chatThreadChangeListener.let {
+            for (emChatThreadChangeListener in it) {
+                try {
+                    emChatThreadChangeListener.onChatThreadUpdated(event)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onChatThreadDestroyed(event: ChatThreadEvent?) {
+        chatThreadChangeListener.let {
+            for (emChatThreadChangeListener in it) {
+                try {
+                    emChatThreadChangeListener.onChatThreadDestroyed(event)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    override fun onChatThreadUserRemoved(event: ChatThreadEvent?) {
+        chatThreadChangeListener.let {
+            for (emChatThreadChangeListener in it) {
+                try {
+                    emChatThreadChangeListener.onChatThreadUserRemoved(event)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    private fun saveDefaultContactInvitedMsg(username: String?, reason: String?){
+        val useDefaultContactSystemMsg = ChatUIKitClient.getConfig()?.systemMsgConfig?.useDefaultContactSystemMsg ?: false
+        if (useDefaultContactSystemMsg){
+            if (username.isNullOrEmpty()) return
+            val allRequestMessage = ChatUIKitNotificationMsgManager.getInstance().getAllNotifyMessage()
+            val localContact = ChatClient.getInstance().contactManager().contactsFromLocal
+            if (localContact.contains(username)) return
+
+            // 同一用户的申请只保留一条；重复申请必须替换旧消息而不是直接忽略，
+            // 否则旧消息位于已读游标之前，本次申请将永远无法产生新的未读数。
+            allRequestMessage
+                .filter { it.ext()[ChatUIKitConstant.SYSTEM_MESSAGE_FROM] == username }
+                .forEach { ChatUIKitNotificationMsgManager.getInstance().removeMessage(it) }
+
+            val ext: MutableMap<String, Any> = ChatUIKitNotificationMsgManager.getInstance().createMsgExt()
+            ext[ChatUIKitConstant.SYSTEM_MESSAGE_FROM] = username
+            reason?.let {
+                ext[ChatUIKitConstant.SYSTEM_MESSAGE_REASON] = it
+            }
+            ext[ChatUIKitConstant.SYSTEM_MESSAGE_STATUS] = InviteMessageStatus.BEINVITEED.name
+            ChatUIKitClient.getContext()?.let {
+                ChatUIKitNotificationMsgManager.getInstance()
+                    .createMessage(RequestMsgHelper.getSystemMessage(it,ext), ext)
+
+                ChatUIKitFlowBus.withStick<ChatUIKitEvent>(ChatUIKitEvent.EVENT.ADD.name)
+                    .post(it.mainScope(), ChatUIKitEvent(ChatUIKitEvent.EVENT.ADD.name, ChatUIKitEvent.TYPE.NOTIFY))
+            }
+        }
+    }
+
+    private fun deleteDefaultContactAgreedMsg(username: String?){
+        val useDefaultContactSystemMsg = ChatUIKitClient.getConfig()?.systemMsgConfig?.useDefaultContactSystemMsg ?: false
+        if (useDefaultContactSystemMsg){
+            val allRequestMessage = ChatUIKitNotificationMsgManager.getInstance().getAllNotifyMessage()
+            allRequestMessage.map {msg->
+                if (msg.ext()[ChatUIKitConstant.SYSTEM_MESSAGE_FROM] == username &&
+                    msg.ext()[ChatUIKitConstant.SYSTEM_MESSAGE_STATUS] == InviteMessageStatus.AGREED.name
+                ){
+                    ChatUIKitNotificationMsgManager.getInstance().removeMessage(msg)
+                    ChatUIKitClient.getContext()?.let {
+                        ChatUIKitFlowBus.withStick<ChatUIKitEvent>(ChatUIKitEvent.EVENT.REMOVE.name)
+                            .post(it.mainScope(), ChatUIKitEvent(ChatUIKitEvent.EVENT.REMOVE.name, ChatUIKitEvent.TYPE.NOTIFY))
+
+                    }
+                }
+            }
+        }
+    }
+
+    private fun defaultMultiDeviceContactEvent(event: Int, target: String?, ext: String?){
+        val useDefaultMultiDeviceContactEvent = ChatUIKitClient.getConfig()?.multiDeviceConfig?.useDefaultMultiDeviceContactEvent ?: false
+        if (useDefaultMultiDeviceContactEvent){
+            when(event){
+                CONTACT_REMOVE -> {
+                    val allRequestMessage = ChatUIKitNotificationMsgManager.getInstance().getAllNotifyMessage()
+                    allRequestMessage.map {msg->
+                        if (msg.ext()[ChatUIKitConstant.SYSTEM_MESSAGE_FROM] == target &&
+                            msg.ext()[ChatUIKitConstant.SYSTEM_MESSAGE_STATUS] == InviteMessageStatus.AGREED.name
+                        ){
+                            ChatUIKitNotificationMsgManager.getInstance().removeMessage(msg)
+                            ChatUIKitClient.getContext()?.let {
+                                ChatUIKitFlowBus.withStick<ChatUIKitEvent>(ChatUIKitEvent.EVENT.REMOVE.name)
+                                    .post(it.mainScope(), ChatUIKitEvent(ChatUIKitEvent.EVENT.REMOVE.name, ChatUIKitEvent.TYPE.CONTACT))
+
+                                ChatUIKitFlowBus.withStick<ChatUIKitEvent>(ChatUIKitEvent.EVENT.REMOVE.name)
+                                    .post(it.mainScope(), ChatUIKitEvent(ChatUIKitEvent.EVENT.REMOVE.name, ChatUIKitEvent.TYPE.NOTIFY))
+                            }
+                        }
+                    }
+                }
+                CONTACT_ACCEPT -> {
+                    ChatUIKitClient.getContext()?.let {
+                        ChatUIKitFlowBus.withStick<ChatUIKitEvent>(ChatUIKitEvent.EVENT.ADD.name)
+                            .post(it.mainScope(), ChatUIKitEvent(ChatUIKitEvent.EVENT.ADD.name, ChatUIKitEvent.TYPE.CONTACT))
+                    }
+                }
+                else -> {}
+            }
+
+        }
+    }
+
+    private fun defaultMultiDeviceGroupEvent(event: Int, target: String?, usernames: MutableList<String>?){
+        val useDefaultMultiDeviceGroupEvent = ChatUIKitClient.getConfig()?.multiDeviceConfig?.useDefaultMultiDeviceGroupEvent ?: false
+        if (useDefaultMultiDeviceGroupEvent){
+            when(event){
+                GROUP_CREATE -> {
+                    ChatUIKitClient.getContext()?.let {
+                        ChatUIKitFlowBus.with<ChatUIKitEvent>(ChatUIKitEvent.EVENT.ADD.name)
+                            .post(it.mainScope(), ChatUIKitEvent(ChatUIKitEvent.EVENT.ADD.name, ChatUIKitEvent.TYPE.GROUP, target))
+                    }
+                }
+                GROUP_DESTROY -> {
+                    ChatUIKitClient.getContext()?.let {
+                        ChatUIKitFlowBus.with<ChatUIKitEvent>(ChatUIKitEvent.EVENT.DESTROY.name)
+                            .post(it.mainScope(), ChatUIKitEvent(ChatUIKitEvent.EVENT.DESTROY.name, ChatUIKitEvent.TYPE.GROUP, target))
+                    }
+                }
+                GROUP_JOIN -> {
+                    ChatUIKitClient.getContext()?.let {
+                        ChatUIKitFlowBus.with<ChatUIKitEvent>(ChatUIKitEvent.EVENT.ADD.name)
+                            .post(it.mainScope(), ChatUIKitEvent(ChatUIKitEvent.EVENT.ADD.name, ChatUIKitEvent.TYPE.GROUP, target))
+                    }
+                }
+                GROUP_LEAVE -> {
+                    ChatUIKitClient.getContext()?.let {
+                        ChatUIKitFlowBus.with<ChatUIKitEvent>(ChatUIKitEvent.EVENT.LEAVE.name)
+                            .post(it.mainScope(), ChatUIKitEvent(ChatUIKitEvent.EVENT.LEAVE.name, ChatUIKitEvent.TYPE.GROUP, target))
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+
+
+
+    @Synchronized
+    internal fun callbackEvent(function: String, errorCode: Int, errorMessage: String?) {
+        if (eventResultListener.isEmpty()) {
+            return
+        }
+        eventResultListener.iterator().forEach { listener ->
+            listener.onEventResult(function, errorCode, errorMessage)
+        }
+    }
+
+}

@@ -4,7 +4,6 @@ import android.content.Intent
 import com.hyphenate.callkit.bean.Constant
 import com.hyphenate.chatdemo.DemoApplication
 import com.hyphenate.chatdemo.DemoHelper
-import com.hyphenate.chatdemo.common.extensions.internal.insertSwindleMsg
 import com.hyphenate.chatdemo.ui.login.LoginActivity
 import com.hyphenate.easeui.ChatUIKitClient
 import com.hyphenate.easeui.common.ChatClient
@@ -61,8 +60,6 @@ object ListenersWrapper {
         override fun onMessageReceived(messages: MutableList<ChatMessage>?) {
             super.onMessageReceived(messages)
             messages?.forEach { message ->
-                DemoHelper.getInstance().context.insertSwindleMsg(message)
-
                 if (DemoHelper.getInstance().getDataModel().isAppPushSilent()) {
                     return@forEach
                 }

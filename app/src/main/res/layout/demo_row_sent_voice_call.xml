@@ -10,7 +10,7 @@
 
         <com.hyphenate.easeui.widget.ChatUIKitImageView
             android:id="@+id/iv_userhead"
-            app:layout_constraintBottom_toBottomOf="@id/bubble"
+            app:layout_constraintTop_toTopOf="@id/bubble"
             app:layout_constraintEnd_toEndOf="parent"
             style="@style/ease_chat_row_send_avatar_style"/>
 
@@ -19,7 +19,8 @@
             style="@style/ease_chat_row_send_bubble_style"
             app:layout_constraintEnd_toStartOf="@id/iv_userhead"
             app:layout_constraintTop_toBottomOf="@id/tv_userid"
-            app:layout_constraintBottom_toTopOf="@id/timestamp"
+            app:layout_goneMarginTop="@dimen/ease_size_10"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_goneMarginEnd="@dimen/ease_size_12">
 
             <TextView
@@ -77,7 +78,8 @@
         <TextView
             android:id="@+id/tv_userid"
             style="@style/ease_chat_row_text_name_style"
-            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="@dimen/ease_size_10"
+            app:layout_constraintTop_toBottomOf="@id/timestamp"
             app:layout_constraintBottom_toTopOf="@id/bubble"
             app:layout_constraintEnd_toEndOf="@id/bubble"
             tools:text="som"/>
@@ -85,9 +87,10 @@
         <TextView
             android:id="@+id/timestamp"
             style="@style/ease_chat_row_text_date_style"
-            app:layout_constraintEnd_toEndOf="@id/bubble"
-            app:layout_constraintTop_toBottomOf="@id/bubble"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
             tools:text="11-03, 8:41"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
