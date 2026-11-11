@@ -12,6 +12,7 @@ import com.hyphenate.easeui.common.ChatMessageType
 import com.hyphenate.easeui.common.ChatType
 import com.hyphenate.easeui.common.extensions.isSend
 import com.hyphenate.easeui.common.extensions.mainScope
+import com.hyphenate.easeui.common.helper.ChatUIKitReadReceiptHelper
 import com.hyphenate.easeui.feature.chat.interfaces.OnItemBubbleClickListener
 import com.hyphenate.easeui.feature.chat.interfaces.OnMessageReadReceiptSendCallback
 import com.hyphenate.easeui.widget.chatrow.ChatUIKitRow
@@ -83,6 +84,25 @@ open class ChatUIKitRowViewHolder(itemView: View): ChatUIKitBaseRecyclerViewAdap
      * @param message
      */
     protected open fun handleReceiveMessage(message: ChatMessage?) {
+        // Send group message read receipt first, it is independent of the channel ack logic below.
+        // All sends go through ChatUIKitReadReceiptHelper so rebinds never ack twice.
+        message?.let { msg ->
+            if (msg.chatType === ChatType.GroupChat && msg.isNeedReadReceipt && !msg.isRead) {
+                ChatUIKitReadReceiptHelper.markMessageAsRead(msg, object : ChatCallback {
+                    override fun onSuccess() {
+                        getContext().mainScope().launch {
+                            messageReadReceiptSendCallback?.onSendReadReceiptSuccess(msg)
+                        }
+                    }
+
+                    override fun onError(code: Int, errorMsg: String?) {
+                        getContext().mainScope().launch {
+                            messageReadReceiptSendCallback?.onSendReadReceiptError(msg, code, errorMsg)
+                        }
+                    }
+                })
+            }
+        }
         //Here no longer send read_ack message separately, instead enter the chat page to send channel_ack
         //New messages are sent in the onReceiveMessage method of the chat page, except for video
         // , voice and file messages, and send read_ack messages
@@ -97,20 +117,19 @@ open class ChatUIKitRowViewHolder(itemView: View): ChatUIKitBaseRecyclerViewAdap
                 return
             }
             if (!msg.isPeerRead && msg.chatType === ChatType.Chat) {
-                ChatClient.getInstance().chatManager()
-                    .asyncSendMessageReadReceipts(listOf(msg), object : ChatCallback {
-                        override fun onSuccess() {
-                            getContext().mainScope().launch {
-                                messageReadReceiptSendCallback?.onSendReadReceiptSuccess(msg)
-                            }
+                ChatUIKitReadReceiptHelper.markMessageAsRead(msg, object : ChatCallback {
+                    override fun onSuccess() {
+                        getContext().mainScope().launch {
+                            messageReadReceiptSendCallback?.onSendReadReceiptSuccess(msg)
                         }
+                    }
 
-                        override fun onError(code: Int, errorMsg: String?) {
-                            getContext().mainScope().launch {
-                                messageReadReceiptSendCallback?.onSendReadReceiptError(msg, code, errorMsg)
-                            }
+                    override fun onError(code: Int, errorMsg: String?) {
+                        getContext().mainScope().launch {
+                            messageReadReceiptSendCallback?.onSendReadReceiptError(msg, code, errorMsg)
                         }
-                    })
+                    }
+                })
             }
         }
     }

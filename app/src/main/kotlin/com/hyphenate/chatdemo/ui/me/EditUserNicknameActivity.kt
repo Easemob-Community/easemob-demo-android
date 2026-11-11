@@ -17,7 +17,7 @@ open class EditUserNicknameActivity:ChatUIKitBaseActivity<DemoActivityMeInformat
     private var newName:String = ""
 
     companion object{
-        private const val RESULT_REFRESH = "isRefresh"
+        protected const val RESULT_REFRESH = "isRefresh"
     }
 
     override fun getViewBinding(inflater: LayoutInflater): DemoActivityMeInformationEditBinding {
@@ -89,11 +89,13 @@ open class EditUserNicknameActivity:ChatUIKitBaseActivity<DemoActivityMeInformat
             else com.hyphenate.easeui.R.color.ease_color_on_background_high))
     }
 
-    private fun updateUserInfo(){
+    protected open val resultKey: String = "nickname"
+
+    protected open fun updateUserInfo(){
         newName = binding.etName.text.trim().toString()
         val resultIntent = Intent()
         resultIntent.putExtra(RESULT_REFRESH, true)
-        resultIntent.putExtra("nickname", newName)
+        resultIntent.putExtra(resultKey, newName)
         setResult(RESULT_OK,resultIntent)
         finish()
     }

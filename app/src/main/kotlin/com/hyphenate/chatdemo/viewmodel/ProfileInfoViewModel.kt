@@ -36,6 +36,14 @@ class ProfileInfoViewModel(application: Application) : AndroidViewModel(applicat
             emit(mRepository.updateNickname(nickName))
         }
 
+    /**
+     * Update user signature.
+     */
+    fun updateUserSign(sign:String) =
+        flow {
+            emit(mRepository.updateSign(sign))
+        }
+
     fun setUserRemark(username:String,remark:String) = flow {
         emit(mRepository.setUserRemark(username,remark))
     }

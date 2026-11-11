@@ -46,7 +46,6 @@ class ConversationListFragment: ChatUIKitConversationListFragment() {
             ChatUIKitClient.getConfig()?.avatarConfig?.setStatusStyle(it.getStatusView(),2.dpToPx(mContext),
                 ContextCompat.getColor(mContext, com.hyphenate.easeui.R.color.ease_color_background))
             updateProfile(true)
-            it.setTitleEndDrawable(R.drawable.conversation_title)
         }
     }
 
@@ -110,7 +109,8 @@ class ConversationListFragment: ChatUIKitConversationListFragment() {
                 val layoutParams = titlebar.getLogoView()?.layoutParams as? ViewGroup.MarginLayoutParams
                 layoutParams?.marginStart = 12.dpToPx(mContext)
                 titlebar.getTitleView().let { text ->
-                    text.text = ""
+                    // Show "会话" at the top like iOS, next to the profile avatar.
+                    text.text = getString(R.string.demo_title_conversations)
                 }
             }
         }
@@ -140,14 +140,6 @@ class ConversationListFragment: ChatUIKitConversationListFragment() {
                         layout.fetchConvUserInfo(it)
                     }
                 }
-            }
-        }
-    }
-
-    override fun defaultActionMoreDialog() {
-        dialogController.showMoreDialog { content ->
-            if (content.isNotEmpty()) {
-                chatContactViewModel.addContact(content)
             }
         }
     }

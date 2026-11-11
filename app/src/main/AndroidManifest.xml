@@ -356,6 +356,10 @@
             android:exported="false"/>
         <activity android:name=".ui.me.AboutActivity"
             android:exported="false"/>
+        <activity android:name=".ui.me.PoliciesActivity"
+            android:exported="false"/>
+        <activity android:name=".ui.me.EditUserSignActivity"
+            android:exported="false"/>
         <activity android:name=".ui.me.NotifyActivity"
             android:exported="false"/>
         <activity android:name=".ui.me.WebViewActivity"

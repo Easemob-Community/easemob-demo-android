@@ -129,7 +129,12 @@ open class ChatUIKitCreateGroupActivity:ChatUIKitBaseActivity<UikitActivityCreat
 
     override fun createGroupSuccess(group: ChatGroup) {
         binding.groupMemberCount.isEnabled = true
-        ChatClient.getInstance().chatManager().saveMessage(group.createNewGroupMessage(group.groupName))
+        // Gray bar: "群聊已创建\nxxx 加入群聊", the same as iOS.
+        group.createNewGroupMessage(
+            getString(R.string.uikit_chat_new_group_created, getGroupNameRule())
+        )?.let {
+            ChatClient.getInstance().chatManager().saveMessage(it)
+        }
         UIKitChatActivity.actionStart(mContext,group.groupId, ChatUIKitType.GROUP_CHAT)
         finish()
     }

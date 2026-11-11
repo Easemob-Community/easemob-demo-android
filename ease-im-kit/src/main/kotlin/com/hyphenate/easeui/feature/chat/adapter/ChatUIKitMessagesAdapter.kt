@@ -33,6 +33,10 @@ open class ChatUIKitMessagesAdapter(
     private var parentMsgId: String? = null
     private var messageReadReceiptSendCallback: OnMessageReadReceiptSendCallback? = null
     private var reactionErrorListener: OnChatUIKitReactionErrorListener? = null
+
+    override fun isSameItem(oldItem: ChatMessage, newItem: ChatMessage): Boolean {
+        return oldItem.msgId == newItem.msgId
+    }
     private var itemClickListener: OnMessageListItemClickListener? = null
     private var replyViewClickListener: OnMessageReplyViewClickListener? = null
     private var threadViewEventListener: OnMessageChatThreadClickListener? = null
@@ -76,6 +80,25 @@ open class ChatUIKitMessagesAdapter(
             val outLayout: View? = holder.itemView.findViewById(R.id.cl_bubble_out)
             outLayout?.let { startAnimator(it) } ?: startAnimator(holder.itemView)
             highlightPosition = -1
+        }
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder<ChatMessage>, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isEmpty()) {
+            super.onBindViewHolder(holder, position, payloads)
+            return
+        }
+        // Partial refresh for message status updates (send progress, success, fail,
+        // read receipt). Only status views are refreshed; content views such as the
+        // image are kept untouched to avoid flickering in the chat list.
+        if (holder.itemView is ChatUIKitRow) {
+            val row = holder.itemView as ChatUIKitRow
+            row.setItemConfig(messageItemConfig)
+            row.setOnMessageListItemClickListener(itemClickListener)
+            getItem(position)?.let {
+                row.message = it
+                row.updateView()
+            }
         }
     }
 

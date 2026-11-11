@@ -458,7 +458,15 @@
     </style>
 
     <style name="ease_chat_row_send_status_ack_style" parent="ease_chat_row_send_status_style">
-        <item name="android:drawableEnd">@drawable/uikit_msg_status_read</item>
+        <item name="android:layout_height">14dp</item>
+        <item name="android:minWidth">14dp</item>
+        <item name="android:maxWidth">38dp</item>
+        <item name="android:paddingStart">2.5dp</item>
+        <item name="android:paddingEnd">2.5dp</item>
+        <item name="android:layout_marginBottom">4dp</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">@color/ease_chat_read_receipt_color</item>
+        <item name="android:gravity">center</item>
     </style>
 
     <style name="ease_chat_row_send_status_delivered_style" parent="ease_chat_row_send_status_style">

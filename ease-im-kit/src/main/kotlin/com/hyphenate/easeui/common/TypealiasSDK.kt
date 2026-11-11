@@ -35,6 +35,7 @@ typealias ChatGroupInfo = com.hyphenate.chat.EMGroupInfo
 typealias ChatGroupConfigs = com.hyphenate.chat.EMGroupConfigs
 typealias ChatShareFile = com.hyphenate.chat.EMMucSharedFile
 typealias ChatGroupReadReceipt = com.hyphenate.chat.EMGroupReadReceipt
+typealias ChatGroupMemberInfo = com.hyphenate.chat.EMGroupMemberInfo
 typealias ChatMessageReadReceipt = com.hyphenate.chat.EMMessageReadReceipt
 
 //Contact

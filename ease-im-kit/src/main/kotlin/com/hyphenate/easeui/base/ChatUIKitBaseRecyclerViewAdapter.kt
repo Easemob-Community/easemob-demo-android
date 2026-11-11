@@ -223,9 +223,44 @@ abstract class ChatUIKitBaseRecyclerViewAdapter<T> :
      * Set data
      * @param data
      */
+    /**
+     * Update data and notify changes smartly.
+     * - Only appended items: dispatch a range insertion so existing visible rows are
+     *   not rebound (rebinding every row on each send causes visible flickers).
+     * - Same size and same message ids: dispatch a payload range change so rows only
+     *   refresh their status views instead of a full rebind.
+     */
     fun setData(data: MutableList<T>?) {
+        val old = mData
+        if (old != null && data != null && old.isNotEmpty()) {
+            val samePrefix = old.indices.all { index ->
+                old[index] === data.getOrNull(index) || isSameItem(old[index], data[index])
+            }
+            if (samePrefix) {
+                synchronized(ChatUIKitBaseRecyclerViewAdapter::class.java) {
+                    mData = data
+                }
+                when {
+                    data.size > old.size ->
+                        notifyItemRangeInserted(old.size, data.size - old.size)
+                    data.size == old.size ->
+                        notifyItemRangeChanged(0, data.size, UPDATE_STATUS_PAYLOAD)
+                    else -> { /* size shrank with same prefix: rare, fall through to full refresh */ }
+                }
+                if (data.size >= old.size) {
+                    return
+                }
+            }
+        }
         mData = data
         notifyDataSetChanged()
+    }
+
+    /**
+     * Whether two items represent the same list entry, used by the smart [setData].
+     */
+    protected open fun isSameItem(oldItem: T, newItem: T): Boolean {
+        return oldItem === newItem
     }
 
     /**
@@ -444,5 +479,8 @@ abstract class ChatUIKitBaseRecyclerViewAdapter<T> :
     companion object {
         const val VIEW_TYPE_EMPTY = -1
         const val VIEW_TYPE_ITEM = 0
+
+        /** Payload used by the smart [setData] to request a status-only partial rebind. */
+        val UPDATE_STATUS_PAYLOAD = Any()
     }
 }

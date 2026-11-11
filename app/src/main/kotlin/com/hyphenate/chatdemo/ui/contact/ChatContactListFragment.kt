@@ -41,8 +41,7 @@ class ChatContactListFragment : ChatUIKitContactsListFragment() {
         binding?.listContact?.setViewModel(contactViewModel)
         super.initView(savedInstanceState)
         binding?.titleContact?.let {
-            it.setTitle("")
-            it.setTitleEndDrawable(R.drawable.contact_title)
+            it.setTitle(getString(R.string.demo_title_contacts))
         }
         updateProfile(true)
     }
@@ -119,7 +118,8 @@ class ChatContactListFragment : ChatUIKitContactsListFragment() {
                 val layoutParams = titlebar.getLogoView()?.layoutParams as? ViewGroup.MarginLayoutParams
                 layoutParams?.marginStart = 12.dpToPx(mContext)
                 titlebar.getTitleView().let { text ->
-                    text.text = ""
+                    // Show "联系人" at the top like iOS, next to the profile avatar.
+                    text.text = getString(R.string.demo_title_contacts)
                 }
             }
         }

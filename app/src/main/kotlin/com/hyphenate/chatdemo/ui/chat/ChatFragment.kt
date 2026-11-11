@@ -44,8 +44,24 @@ class ChatFragment: UIKitChatFragment() , IPresenceResultView {
     override fun initView(savedInstanceState: Bundle?) {
         super.initView(savedInstanceState)
         binding?.titleBar?.inflateMenu(com.hyphenate.chatdemo.R.menu.demo_chat_menu)
+        addChatWatermark()
         updatePresence()
         setFraudLayoutInChatFragemntHead()
+    }
+
+    /**
+     * Add the diagonal "环信Demo 仅供参考 谨防诈骗" watermark behind the message list,
+     * the same as the iOS demo's ChatWatermarkView.
+     */
+    private fun addChatWatermark() {
+        binding?.layoutChat?.addView(
+            ChatWatermarkView(mContext),
+            0,
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
     }
 
     override fun initEventBus() {
@@ -164,7 +180,6 @@ class ChatFragment: UIKitChatFragment() , IPresenceResultView {
         listLayoutParent.post { messageListLayout.setPadding(0, view.measuredHeight, 0, 0) }
 
         val textView: TextView =view.findViewById(R.id.tv_fraud)
-        val ivExit: ImageView =view.findViewById(R.id.iv_fraud_exit)
 
         val prefixText = getString(R.string.demo_chat_fraud_prefix)
         val clickableText = getString(R.string.demo_chat_fraud_report)
@@ -187,6 +202,7 @@ class ChatFragment: UIKitChatFragment() , IPresenceResultView {
             }
             override fun updateDrawState(ds: TextPaint) {
                 super.updateDrawState(ds)
+                ds.color = ContextCompat.getColor(mContext, com.hyphenate.chatdemo.R.color.demo_chat_fraud_text_report_color)
                 ds.isUnderlineText = false // 去掉下划线
             }
         }
@@ -200,6 +216,7 @@ class ChatFragment: UIKitChatFragment() , IPresenceResultView {
         textView.text = spannableStringBuilder
         textView.movementMethod = LinkMovementMethod.getInstance()
 
+        val ivExit: ImageView = view.findViewById(R.id.iv_fraud_exit)
         ivExit.setOnClickListener{
             listLayoutParent.removeView(view)
             listLayoutParent.post { messageListLayout.setPadding(0,0, 0, 0) }

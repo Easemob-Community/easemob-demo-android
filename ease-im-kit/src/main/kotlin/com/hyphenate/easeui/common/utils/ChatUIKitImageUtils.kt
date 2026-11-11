@@ -40,6 +40,7 @@ import com.hyphenate.easeui.common.ChatPathUtils
 import com.hyphenate.easeui.common.ChatVideoMessageBody
 import com.hyphenate.easeui.common.extensions.getScreenInfo
 import com.hyphenate.easeui.common.extensions.mainScope
+import com.hyphenate.easeui.common.extensions.setLayoutSize
 import com.hyphenate.easeui.common.utils.ChatUIKitFileUtils.isFileExistByUri
 import com.hyphenate.easeui.common.utils.ChatUIKitFileUtils.takePersistableUriPermission
 import com.hyphenate.util.EMLog
@@ -382,7 +383,7 @@ object ChatUIKitImageUtils : ChatImageUtils() {
                 onError = { _, throwable ->
                     ChatLog.e("msg", "load image error: ${throwable.throwable.message}")
                     imageView.context.mainScope().launch {
-                        imageView.layoutParams = ViewGroup.LayoutParams(
+                        imageView.setLayoutSize(
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT
                         )

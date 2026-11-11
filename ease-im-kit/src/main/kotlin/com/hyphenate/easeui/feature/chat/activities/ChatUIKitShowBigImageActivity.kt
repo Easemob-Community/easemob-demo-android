@@ -14,23 +14,26 @@
 package com.hyphenate.easeui.feature.chat.activities
 
 import android.annotation.SuppressLint
-import android.app.ProgressDialog
+import android.app.AlertDialog
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.Toast
+import coil.load
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import coil.load
 import com.hyphenate.easeui.ChatUIKitClient
 import com.hyphenate.easeui.R
 import com.hyphenate.easeui.base.ChatUIKitBaseActivity
 import com.hyphenate.easeui.common.ChatClient
-import com.hyphenate.easeui.common.ChatDownloadStatus
 import com.hyphenate.easeui.common.ChatError
 import com.hyphenate.easeui.common.ChatImageMessageBody
 import com.hyphenate.easeui.common.ChatLog
@@ -39,29 +42,40 @@ import com.hyphenate.easeui.common.ChatUIKitConstant
 import com.hyphenate.easeui.common.bus.ChatUIKitFlowBus
 import com.hyphenate.easeui.common.extensions.hasRoute
 import com.hyphenate.easeui.common.extensions.mainScope
+import com.hyphenate.easeui.common.extensions.showToast
 import com.hyphenate.easeui.common.impl.CallbackImpl
 import com.hyphenate.easeui.common.utils.ChatUIKitFileUtils
 import com.hyphenate.easeui.databinding.UikitActivityShowBigImageBinding
 import com.hyphenate.easeui.model.ChatUIKitEvent
 import com.hyphenate.easeui.widget.photoview.OnPhotoTapListener
 import com.hyphenate.easeui.widget.photoview.OnViewTapListener
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
- * download and show original image
- *
+ * Full-screen image viewer, aligned with the iOS ImageDetailViewController:
+ * shows the thumbnail first, offers a bottom "查看原图" button that downloads
+ * and toggles the original image, supports long-press to save to the gallery,
+ * and relies on the built-in PhotoView for smooth pinch/double-tap zoom.
  */
 class ChatUIKitShowBigImageActivity : ChatUIKitBaseActivity<UikitActivityShowBigImageBinding>() {
     private var default_res: Int = R.drawable.uikit_default_image
     private var filename: String? = null
     private var isNeedDownload = false
     private var msgId: String? = null
-    private var mProgress: Int = 0
+    private var imageMessage: ChatMessage? = null
+    private var showingOriginal = false
+    private var downloading = false
+    private var thumbnailUri: Uri? = null
+    private var displayedUri: Uri? = null
 
     @SuppressLint("NewApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Fade-in, the same cross dissolve effect as iOS.
+        overridePendingTransition(R.anim.uikit_fade_in, 0)
+
         default_res = intent.getIntExtra("default_image", R.drawable.uikit_default_image)
         val uri: Uri? = intent.getParcelableExtra("uri")
         filename = intent.extras?.getString("filename")
@@ -70,30 +84,14 @@ class ChatUIKitShowBigImageActivity : ChatUIKitBaseActivity<UikitActivityShowBig
             intent.extras?.getString(ChatUIKitConstant.MESSAGE_ATTR_EXPRESSION_ID)
         ChatLog.d(TAG, "show big msgId:$msgId")
 
-        //show the image if it exist in local path
-        if (ChatUIKitFileUtils.isFileExistByUri(this, uri)) {
-            binding.image.load(uri)
-        } else if (!TextUtils.isEmpty(emojiIconId)) {
-            showBigExpression(emojiIconId)
-        } else if (msgId != null) {
-            var msg: ChatMessage? = ChatClient.getInstance().chatManager().getMessage(msgId)
-            if (msg == null) {
-                msg = intent.getParcelableExtra("msg")
-                if (msg == null) {
-                    ChatLog.e(TAG, "message is null, messageId: $msgId")
-                    finish()
-                    return
-                }
-            }
-            val body: ChatImageMessageBody = msg.body as ChatImageMessageBody
-            if (ChatUIKitFileUtils.isFileExistByUri(this, body.localUri)) {
-                binding.image.load(body.localUri)
-            } else {
-                downloadImage(msg)
-            }
-        } else {
-            binding.image.setImageResource(default_res)
+        when {
+            // A local file is passed directly: show it, nothing to download.
+            ChatUIKitFileUtils.isFileExistByUri(this, uri) -> display(uri)
+            !TextUtils.isEmpty(emojiIconId) -> showBigExpression(emojiIconId)
+            msgId != null -> setupImageMessage()
+            else -> binding.image.setImageResource(default_res)
         }
+
         binding.image.setOnViewTapListener(object : OnViewTapListener {
             override fun onViewTap(view: View?, x: Float, y: Float) {
                 finish()
@@ -104,6 +102,11 @@ class ChatUIKitShowBigImageActivity : ChatUIKitBaseActivity<UikitActivityShowBig
                 finish()
             }
         })
+        binding.image.setOnLongClickListener {
+            showSaveDialog()
+            true
+        }
+        binding.btnOriginal.setOnClickListener { onOriginalButtonClicked() }
     }
 
     override fun setActivityTheme() {
@@ -112,6 +115,145 @@ class ChatUIKitShowBigImageActivity : ChatUIKitBaseActivity<UikitActivityShowBig
 
     override fun getViewBinding(inflater: LayoutInflater): UikitActivityShowBigImageBinding? {
         return UikitActivityShowBigImageBinding.inflate(inflater)
+    }
+
+    /**
+     * Default to the thumbnail (requirement 1); the bottom button offers the
+     * original image download like iOS.
+     */
+    private fun setupImageMessage() {
+        var msg: ChatMessage? = ChatClient.getInstance().chatManager().getMessage(msgId)
+        if (msg == null) {
+            msg = intent.getParcelableExtra("msg")
+            if (msg == null) {
+                ChatLog.e(TAG, "message is null, messageId: $msgId")
+                finish()
+                return
+            }
+        }
+        val body = msg.body as? ChatImageMessageBody ?: run {
+            finish()
+            return
+        }
+        imageMessage = msg
+        thumbnailUri = body.thumbnailLocalUri()?.takeIf {
+            ChatUIKitFileUtils.isFileExistByUri(this, it)
+        }
+        val originalExists = ChatUIKitFileUtils.isFileExistByUri(this, body.localUri)
+        if (originalExists) {
+            // The original is already on disk (sent image or downloaded before).
+            showingOriginal = true
+            display(body.localUri)
+        } else {
+            // Requirement 1: default to the thumbnail, and offer the original
+            // download with the bottom button.
+            if (thumbnailUri != null) {
+                display(thumbnailUri)
+            } else {
+                binding.image.setImageResource(default_res)
+            }
+            showOriginalButton(R.string.uikit_view_original_image)
+        }
+    }
+
+    private fun onOriginalButtonClicked() {
+        if (showingOriginal) {
+            showingOriginal = false
+            if (thumbnailUri != null) {
+                display(thumbnailUri)
+            } else {
+                binding.image.setImageResource(default_res)
+            }
+            showOriginalButton(R.string.uikit_view_original_image)
+        } else {
+            val body = imageMessage?.body as? ChatImageMessageBody
+            val local = body?.localUri
+            if (local != null && ChatUIKitFileUtils.isFileExistByUri(this, local)) {
+                showingOriginal = true
+                display(local)
+                showOriginalButton(R.string.uikit_view_thumbnail_image)
+            } else {
+                downloadOriginalImage()
+            }
+        }
+    }
+
+    private fun downloadOriginalImage() {
+        val msg = imageMessage
+        if (msg == null || downloading) {
+            return
+        }
+        downloading = true
+        isNeedDownload = true
+        binding.btnOriginal.isEnabled = false
+        binding.pbLoadLocal.visibility = View.VISIBLE
+        msg.setMessageStatusCallback(CallbackImpl(
+            onSuccess = {
+                mContext.mainScope().launch {
+                    downloading = false
+                    binding.pbLoadLocal.visibility = View.GONE
+                    binding.btnOriginal.isEnabled = true
+                    // Read a fresh message instance: the SDK updates its own copy
+                    // during download while the one we hold may keep a stale or
+                    // null localUri, which would leave the screen without image.
+                    val fresh = ChatClient.getInstance().chatManager().getMessage(msg.msgId) ?: msg
+                    val local = (fresh.body as? ChatImageMessageBody)?.localUri
+                    val exists = local != null && ChatUIKitFileUtils.isFileExistByUri(mContext, local)
+                    ChatLog.e(TAG, "download original success: local=$local exists=$exists")
+                    if (exists && local != null) {
+                        imageMessage = fresh
+                        showingOriginal = true
+                        display(local)
+                        showOriginalButton(R.string.uikit_view_thumbnail_image)
+                    } else {
+                        onDownloadFailed()
+                    }
+                }
+            },
+            onError = { code, _ ->
+                mContext.mainScope().launch {
+                    downloading = false
+                    binding.pbLoadLocal.visibility = View.GONE
+                    binding.btnOriginal.isEnabled = true
+                    if (code == ChatError.FILE_NOT_FOUND) {
+                        showToast(R.string.uikit_image_expired)
+                    } else {
+                        onDownloadFailed()
+                    }
+                }
+            },
+            onProgress = { progress ->
+                mContext.mainScope().launch {
+                    binding.btnOriginal.text =
+                        getString(R.string.uikit_downloading_image, progress)
+                }
+            }
+        ))
+        ChatLog.d(TAG, "download original image, messageId: ${msg.msgId}")
+        ChatClient.getInstance().chatManager().downloadAttachment(msg)
+        showOriginalButton(R.string.uikit_downloading_image, 0)
+    }
+
+    private fun onDownloadFailed() {
+        showOriginalButton(R.string.uikit_view_original_image)
+    }
+
+    private fun display(uri: Uri?) {
+        displayedUri = uri
+        // Reset any pinch/double-tap zoom before swapping the image: the attacher
+        // keeps the support matrix across drawables, and a stale zoom/pan can push
+        // the freshly loaded image out of the visible area.
+        binding.image.setZoomable(false)
+        binding.image.setZoomable(true)
+        binding.image.load(uri) {
+            crossfade(true)
+            error(default_res)
+        }
+    }
+
+    private fun showOriginalButton(textRes: Int, progress: Int? = null) {
+        binding.btnOriginal.visibility = View.VISIBLE
+        binding.btnOriginal.text = progress?.let { getString(textRes, it) } ?: getString(textRes)
     }
 
     /**
@@ -134,82 +276,82 @@ class ChatUIKitShowBigImageActivity : ChatUIKitBaseActivity<UikitActivityShowBig
         }
     }
 
-    /**
-     * download image
-     *
-     * @param msg
-     */
-    @SuppressLint("NewApi")
-    private fun downloadImage(msg: ChatMessage?) {
-        if (msg == null) {
-            ChatLog.e(TAG, "download image with empty message!")
-            return
+    // ---------------- Long press: save to gallery ----------------
+
+    private fun currentImageUri(): Uri? {
+        // Whatever is on screen (thumbnail, original, or a directly passed file)
+        // is what long-press should save.
+        if (displayedUri != null) return displayedUri
+        if (showingOriginal) {
+            (imageMessage?.body as? ChatImageMessageBody)?.localUri?.takeIf {
+                ChatUIKitFileUtils.isFileExistByUri(this, it)
+            }?.let { return it }
         }
-        isNeedDownload = true
-        ChatLog.e(TAG, "download with messageId: " + msg.getMsgId())
-        val str1: String = resources.getString(R.string.uikit_download_the_pictures)
-        val pd = ProgressDialog(this)
-        pd.setProgressStyle(ProgressDialog.STYLE_SPINNER)
-        pd.setCanceledOnTouchOutside(false)
-        pd.setMessage(str1)
-        pd.show()
-        msg.setMessageStatusCallback(CallbackImpl(
-            onSuccess = {
-                mContext.mainScope().launch {
-                    checkDownloadStatus(msg.body as ChatImageMessageBody,
-                        onSuccess = {
-                            pd?.dismiss()
-                            val localUrlUri: Uri = (msg.body as ChatImageMessageBody).localUri
-                            binding.image.load(localUrlUri) {
-                                error(R.drawable.uikit_default_image)
-                            }
-                        },
-                        onError = {
-                            pd?.dismiss()
-                            binding.image.setImageResource(default_res)
-                        })
-                }
-            },
-            onError = { code, error ->
-                mContext.mainScope().launch {
-                    pd?.dismiss()
-                    binding.image.setImageResource(default_res)
-                    if (code == ChatError.FILE_NOT_FOUND) {
-                        Toast.makeText(
-                            mContext,
-                            R.string.uikit_image_expired,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-            },
-            onProgress = { progress ->
-                if (progress > mProgress) {
-                    mProgress = progress
-                    mContext.mainScope().launch {
-                        val str2: String = resources.getString(R.string.uikit_download_the_pictures_new)
-                        pd.setMessage("$str2$progress%")
-                    }
-                }
+        return thumbnailUri
+    }
+
+    private fun showSaveDialog() {
+        if (currentImageUri() == null) return
+        AlertDialog.Builder(mContext)
+            .setItems(arrayOf(getString(R.string.uikit_save_image))) { _, _ ->
+                saveImageToGallery()
             }
-        ))
-        ChatClient.getInstance().chatManager().downloadAttachment(msg)
+            .show()
     }
 
-    private suspend fun checkDownloadStatus(imageBody: ChatImageMessageBody, onSuccess: () -> Unit, onError: () -> Unit = {}) {
-        if (imageBody.downloadStatus() == ChatDownloadStatus.DOWNLOADING) {
-            delay(1000)
-            checkDownloadStatus(imageBody, onSuccess, onError)
-        } else if (imageBody.downloadStatus() == ChatDownloadStatus.SUCCESSED) {
-            onSuccess.invoke()
-        } else {
-            onError.invoke()
+    private fun saveImageToGallery() {
+        val uri = currentImageUri() ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val saved = runCatching { copyToGallery(uri) }.getOrDefault(false)
+            withContext(Dispatchers.Main) {
+                showToast(
+                    if (saved) R.string.uikit_save_image_success
+                    else R.string.uikit_save_image_failed
+                )
+            }
         }
     }
 
-    override fun onBackPressed() {
-        super.onBackPressed()
-        finish()
+    private fun copyToGallery(source: Uri): Boolean {
+        val resolver = contentResolver
+        val mime = resolver.getType(source) ?: "image/jpeg"
+        val name = "uikit_${System.currentTimeMillis()}" +
+                ".${android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "jpg"}"
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, name)
+                put(MediaStore.Images.Media.MIME_TYPE, mime)
+                put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/EaseIM")
+            }
+            val target = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                ?: return false
+            resolver.openOutputStream(target)?.use { output ->
+                resolver.openInputStream(source)?.use { input ->
+                    input.copyTo(output)
+                }
+            } != null
+        } else {
+            // Legacy path: insert through the media provider, no permission needed.
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            resolver.openInputStream(source)?.use {
+                BitmapFactory.decodeStream(it, null, bounds)
+            }
+            var sample = 1
+            while (bounds.outWidth / sample > 2048 || bounds.outHeight / sample > 2048) {
+                sample *= 2
+            }
+            val options = BitmapFactory.Options().apply { inSampleSize = sample }
+            val bitmap = resolver.openInputStream(source)?.use {
+                BitmapFactory.decodeStream(it, null, options)
+            } ?: return false
+            MediaStore.Images.Media.insertImage(resolver, bitmap, name, null) != null
+        }
+    }
+
+    override fun finish() {
+        super.finish()
+        // Fade-out to close, paired with the fade-in above.
+        overridePendingTransition(0, R.anim.uikit_fade_out)
     }
 
     override fun onDestroy() {

@@ -90,21 +90,9 @@ class ChatUIKitDingMessageHelper internal constructor(context: Context) {
         if (ChatClient.getInstance().currentUser.equals(message.from, ignoreCase = true)) {
             return
         }
-        try {
-            if (message.isNeedReadReceipt && message.isRead) {
-                ChatClient.getInstance().chatManager()
-                    .asyncSendMessageReadReceipts(listOf(message), object : ChatCallback {
-                        override fun onSuccess() {
-                            ChatLog.i(TAG, "Send the group read receipt message success.")
-                        }
-
-                        override fun onError(code: Int, errorMsg: String?) {
-                            ChatLog.d(TAG, "Send the group read receipt message fail: $code")
-                        }
-                    })
-            }
-        } catch (e: Exception) {
-            ChatLog.d(TAG, e.message)
+        if (message.isNeedReadReceipt && message.isRead) {
+            // Goes through the shared helper so this never acks twice.
+            ChatUIKitReadReceiptHelper.markMessageAsRead(message)
         }
     }
 

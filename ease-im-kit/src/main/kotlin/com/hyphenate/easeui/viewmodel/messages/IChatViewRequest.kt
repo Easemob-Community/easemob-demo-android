@@ -65,6 +65,12 @@ interface IChatViewRequest: IAttachView {
     fun sendBigExpressionMessage(name: String?, identityCode: String?)
 
     /**
+     * Send GIF message from the built-in gif emojicons.
+     * @param gifName the identity code of the gif, e.g. "1" for 1.gif
+     */
+    fun sendGifMessage(gifName: String?)
+
+    /**
      * Send voice message
      * @param filePath
      * @param length

@@ -28,6 +28,7 @@ import com.hyphenate.easeui.common.ChatUIKitConstant.MESSAGE_URL_PREVIEW_DESCRIP
 import com.hyphenate.easeui.common.ChatUIKitConstant.MESSAGE_URL_PREVIEW_IMAGE_URL
 import com.hyphenate.easeui.common.ChatUIKitConstant.MESSAGE_URL_PREVIEW_TITLE
 import com.hyphenate.easeui.common.ChatUIKitConstant.MESSAGE_URL_PREVIEW_URL
+import com.hyphenate.easeui.common.helper.ChatUIKitGifHelper
 import com.hyphenate.easeui.common.helper.DateFormatHelper
 import com.hyphenate.easeui.common.impl.CallbackImpl
 import com.hyphenate.easeui.common.impl.OnError
@@ -529,10 +530,25 @@ fun ChatMessage.getImageSize(context: Context): ChatUIKitSize? {
 }
 
 /**
+ * Whether this message is a gif sent from the built-in emoji panel
+ * (image message whose gif flag is set and file name is N.gif).
+ */
+fun ChatMessage.isBuiltInGif(): Boolean {
+    if (type != ChatMessageType.IMAGE) return false
+    val body = body as? ChatImageMessageBody ?: return false
+    return body.isGif() && ChatUIKitGifHelper.isBuiltInGif(body.fileName)
+}
+
+/**
  * Get the show size of image or video according to the screen info.
  */
 fun ChatMessage.getImageShowSize(context: Context?): ChatUIKitSize? {
     if (context == null) return null
+    // Built-in gifs sent from the emoji panel are displayed at a fixed size of 150*150.
+    if (isBuiltInGif()) {
+        val size = (150 * context.resources.displayMetrics.density).toInt()
+        return ChatUIKitSize(size, size)
+    }
     val originalSize = getImageSize(context) ?: return null
     val maxSize = context.getImageMaxSize()
     // if not get the screen size, the image show the wrap_content size.

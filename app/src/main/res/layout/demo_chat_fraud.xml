@@ -4,40 +4,57 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="9dp"
+    android:layout_marginHorizontal="13dp"
+    android:layout_marginVertical="8dp"
     android:background="@drawable/demo_chat_fraud_bg"
     android:padding="12dp">
 
     <ImageView
         android:id="@+id/iv_fraud_icon"
-        android:layout_marginTop="2dp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="13dp"
+        android:layout_height="13dp"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="1dp"
         android:src="@drawable/demo_fraud_icon"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toLeftOf="@id/tv_fraud"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_fraud_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="9dp"
+        android:layout_marginEnd="32dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="@string/demo_chat_fraud_title"
+        android:textColor="@color/demo_chat_fraud_text_prefix_color"
+        android:textSize="13sp"
+        app:layout_constraintLeft_toRightOf="@id/iv_fraud_icon"
+        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tv_fraud"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="11dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="38dp"
+        android:lineSpacingExtra="3dp"
         android:textColor="@color/demo_chat_fraud_text_prefix_color"
-        android:textSize="16sp"
-        app:layout_constraintLeft_toRightOf="@id/iv_fraud_icon"
-        app:layout_constraintRight_toLeftOf="@id/iv_fraud_exit"
-        app:layout_constraintTop_toTopOf="parent"
+        android:textSize="11sp"
+        app:layout_constraintLeft_toLeftOf="@id/tv_fraud_title"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_fraud_title"
         tools:text="@string/demo_chat_fraud_prefix" />
 
     <ImageView
-        android:layout_marginTop="2dp"
         android:id="@+id/iv_fraud_exit"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginTop="-12dp"
+        android:layout_marginEnd="-12dp"
+        android:padding="14.5dp"
         android:src="@drawable/demo_fraud_exit"
-        app:layout_constraintLeft_toRightOf="@id/tv_fraud"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

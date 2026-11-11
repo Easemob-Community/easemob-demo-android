@@ -15,7 +15,6 @@ import com.hyphenate.easeui.R
 import com.hyphenate.easeui.common.ChatClient
 import com.hyphenate.easeui.common.ChatMessageDirection
 import com.hyphenate.easeui.common.ChatTextMessageBody
-import com.hyphenate.easeui.common.ChatType
 import com.hyphenate.easeui.common.ChatUIKitConstant
 import com.hyphenate.easeui.common.extensions.addChildView
 import com.hyphenate.easeui.common.extensions.containsChild
@@ -121,15 +120,11 @@ open class ChatUIKitRowText @JvmOverloads constructor(
     override fun onMessageSuccess() {
         super.onMessageSuccess()
 
+        // The group read status is rendered by updateSendMessageStatus() as a
+        // circle (empty / number / check). The legacy "n 人已读" text badge is
+        // intentionally not shown, otherwise it briefly overwrites the circle
+        // style right after sending and the row looks inconsistent.
         message?.run {
-            // Show "1 Read" if this msg is a ding-type msg. Only applies to group chat,
-            // single chat messages may also have isNeedReadReceipt set for read receipts.
-            if (isSend() && chatType == ChatType.GroupChat && ChatUIKitDingMessageHelper.get().isDingMessage(this)) {
-                ackedView?.let {
-                    it.visibility = View.VISIBLE
-                    it.text = context.getString(R.string.uikit_group_ack_read_count, readReceiptCount())
-                }
-            }
             // Set ack-user list change listener.
             ChatUIKitDingMessageHelper.get().setUserUpdateListener(this, object : ChatUIKitDingMessageHelper.IReadReceiptUserUpdateListener {
                 override fun onUpdate(list: List<String>?) {
@@ -142,8 +137,8 @@ open class ChatUIKitRowText @JvmOverloads constructor(
     fun onReadReceiptUserUpdate(count: Int) {
         context.mainScope().launch {
             if (isSender) {
-                ackedView?.visibility = View.VISIBLE
-                ackedView?.text = String.format(context.getString(R.string.uikit_group_ack_read_count), count)
+                // Refresh the circle/number/check read status instead of the old text badge.
+                updateView()
             }
         }
     }

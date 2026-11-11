@@ -31,13 +31,9 @@ fun ChatGroup.getOwnerInfo():ChatUIKitUser{
 
 /**
  * Create local group message.
+ * @param content The alert text shown in the gray bar, e.g. "群聊已创建\nxxx 加入群聊".
  */
-internal fun ChatGroup.createNewGroupMessage(groupName:String): ChatMessage? {
-   val name = if (groupName.length > 16) {
-      groupName.substring(0, 16) + "..."
-   } else {
-      groupName
-   }
+internal fun ChatGroup.createNewGroupMessage(content: String): ChatMessage? {
    ChatUIKitClient.getContext()?.let { context ->
       return ChatMessage.createSendMessage(ChatMessageType.CUSTOM).let {
          it.from = ChatClient.getInstance().currentUser
@@ -46,7 +42,7 @@ internal fun ChatGroup.createNewGroupMessage(groupName:String): ChatMessage? {
          val body = ChatCustomMessageBody(ChatUIKitConstant.MESSAGE_CUSTOM_ALERT)
          mutableMapOf(
             ChatUIKitConstant.MESSAGE_CUSTOM_ALERT_TYPE to ChatUIKitConstant.GROUP_WELCOME_MESSAGE,
-            ChatUIKitConstant.MESSAGE_CUSTOM_ALERT_CONTENT to context.getString(R.string.uikit_chat_new_group_welcome,name),
+            ChatUIKitConstant.MESSAGE_CUSTOM_ALERT_CONTENT to content,
             ChatUIKitConstant.GROUP_WELCOME_MESSAGE_GROUP_NAME to groupName
          ).let { map ->
             body.params = map

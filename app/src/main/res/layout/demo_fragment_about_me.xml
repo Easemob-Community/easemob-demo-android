@@ -3,6 +3,7 @@
     android:scrollbars="none"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -13,198 +14,207 @@
         android:background="@color/ease_color_background"
         android:orientation="vertical">
 
-        <com.hyphenate.easeui.widget.ChatUIKitCustomAvatarView
-            android:id="@+id/ep_presence"
-            android:layout_marginTop="64dp"
-            android:layout_gravity="center"
-            android:layout_width="100dp"
-            android:layout_height="100dp"/>
-
+        <!-- Profile header, aligned with iOS MeProfileHeader: avatar on the left -->
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_marginTop="12dp"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:paddingHorizontal="16dp">
+
+            <com.hyphenate.easeui.widget.ChatUIKitCustomAvatarView
+                android:id="@+id/ep_presence"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
 
             <TextView
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toStartOf="@+id/ic_notice"
                 android:id="@+id/tv_name"
                 style="@style/ease_detail_layout_title"
-                app:layout_constraintHorizontal_chainStyle="packed"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                app:layout_constraintHorizontal_chainStyle="packed"
+                app:layout_constraintStart_toEndOf="@id/ep_presence"
+                app:layout_constraintTop_toTopOf="@id/ep_presence"
+                app:layout_constraintEnd_toStartOf="@+id/ic_notice" />
 
             <com.hyphenate.easeui.widget.ChatUIKitImageView
                 android:id="@+id/ic_notice"
                 android:visibility="gone"
                 android:src="@drawable/uikit_do_not_disturb"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="4dp"
                 app:layout_constraintHorizontal_chainStyle="packed"
                 app:layout_constraintTop_toTopOf="@+id/tv_name"
                 app:layout_constraintBottom_toBottomOf="@+id/tv_name"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/tv_name"
-                android:layout_width="20dp"
-                android:layout_height="20dp"/>
+                app:layout_constraintStart_toEndOf="@+id/tv_name" />
 
             <TextView
-                app:layout_constraintTop_toBottomOf="@+id/tv_name"
-                app:layout_constraintStart_toStartOf="parent"
+                android:id="@+id/tv_sign"
+                style="@style/ease_detail_layout_subtitle2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:paddingVertical="2dp"
+                app:layout_constraintStart_toStartOf="@id/tv_name"
                 app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tv_name"
+                tools:text="signature" />
+
+            <TextView
                 android:id="@+id/tv_number"
-                android:padding="5dp"
                 style="@style/ease_detail_layout_subtitle2"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:paddingVertical="5dp"
+                app:layout_constraintStart_toStartOf="@id/tv_name"
+                app:layout_constraintTop_toBottomOf="@+id/tv_sign" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <TextView
-            android:text="@string/main_about_me_setting"
-            android:layout_marginTop="10dp"
+            android:text="@string/main_about_me_about"
+            android:layout_marginTop="20dp"
             android:layout_marginStart="16dp"
             android:layout_marginBottom="4dp"
             android:textAppearance="@style/Ease.TextAppearance.Label.Medium"
             android:textColor="@color/ease_details_subtitle2_color"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content" />
 
         <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
-            android:id="@+id/item_presence"
-            app:layout_constraintTop_toBottomOf="@+id/sw_item_black"
-            app:arrowItemTitle="@string/presence_status"
-            app:arrowItemAvatarSrc="@drawable/icon_presence"
+            android:id="@+id/item_business"
+            app:arrowItemTitle="@string/about_business_cooperation"
+            app:arrowItemContent="@string/main_about_me_business_phone"
+            app:arrowItemShowAvatar="false"
+            app:arrowItemShowArrow="false"
             style="@style/main_about_me_arrow_item"
             android:layout_width="match_parent"
-            android:layout_height="54dp"/>
+            android:layout_height="54dp" />
 
         <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
-            android:id="@+id/item_information"
-            app:layout_constraintTop_toBottomOf="@+id/sw_item_black"
-            app:arrowItemTitle="@string/main_about_me_information"
-            app:arrowItemAvatarSrc="@drawable/icon_information"
+            android:id="@+id/item_website"
+            app:arrowItemTitle="@string/main_about_me_visit_easemob"
+            app:arrowItemContent="@string/main_about_me_visit_easemob_content"
+            app:arrowItemShowAvatar="false"
+            app:arrowItemShowArrow="false"
             style="@style/main_about_me_arrow_item"
             android:layout_width="match_parent"
-            android:layout_height="54dp"/>
+            android:layout_height="54dp" />
 
         <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
-            android:id="@+id/item_currency"
-            app:layout_constraintTop_toBottomOf="@+id/sw_item_black"
-            app:arrowItemTitle="@string/main_about_me_currency"
-            app:arrowItemAvatarSrc="@drawable/icon_currency"
+            android:id="@+id/item_sdk_version"
+            app:arrowItemTitle="@string/main_about_me_sdk_version"
+            app:arrowItemContent="Easemob SDK"
+            app:arrowItemShowAvatar="false"
+            app:arrowItemShowArrow="false"
             style="@style/main_about_me_arrow_item"
             android:layout_width="match_parent"
-            android:layout_height="54dp"/>
+            android:layout_height="54dp" />
 
         <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
-            android:id="@+id/item_notify"
-            app:layout_constraintTop_toBottomOf="@+id/sw_item_black"
-            app:arrowItemTitle="@string/main_about_me_notify"
-            app:arrowItemAvatarSrc="@drawable/icon_notify"
+            android:id="@+id/item_uikit_version"
+            app:arrowItemTitle="@string/main_about_me_uikit_version"
+            app:arrowItemContent="Easemob UIKit"
+            app:arrowItemShowAvatar="false"
+            app:arrowItemShowArrow="false"
             style="@style/main_about_me_arrow_item"
             android:layout_width="match_parent"
-            android:layout_height="54dp"/>
-
-        <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
-            android:id="@+id/item_privacy"
-            app:layout_constraintTop_toBottomOf="@+id/sw_item_black"
-            app:arrowItemTitle="@string/main_about_me_privacy"
-            app:arrowItemAvatarSrc="@drawable/icon_privacy"
-            style="@style/main_about_me_arrow_item"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"/>
-
-        <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
-            android:id="@+id/item_privacy_policy"
-            app:layout_constraintTop_toBottomOf="@+id/item_privacy"
-            app:arrowItemTitle="@string/main_about_me_privacy_policy"
-            app:arrowItemAvatarSrc="@drawable/icon_privacy_policy"
-            style="@style/main_about_me_arrow_item"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"/>
-
-        <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
-            android:id="@+id/item_terms_of_service"
-            app:layout_constraintTop_toBottomOf="@+id/item_privacy_policy"
-            app:arrowItemTitle="@string/main_about_me_terms_of_service"
-            app:arrowItemAvatarSrc="@drawable/icon_server_rules"
-            style="@style/main_about_me_arrow_item"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"/>
-
-        <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
-            android:id="@+id/item_third_party_data"
-            app:layout_constraintTop_toBottomOf="@+id/item_privacy_policy"
-            app:arrowItemTitle="@string/main_about_me_third_party_data"
-            app:arrowItemAvatarSrc="@drawable/icon_third_data"
-            style="@style/main_about_me_arrow_item"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"/>
-
-        <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
-            android:id="@+id/item_personal_data_collection"
-            app:layout_constraintTop_toBottomOf="@+id/item_third_party_data"
-            app:arrowItemTitle="@string/main_about_me_personal_data_collection"
-            app:arrowItemAvatarSrc="@drawable/icon_personal_data"
-            style="@style/main_about_me_arrow_item"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"/>
+            android:layout_height="54dp" />
 
         <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
             android:id="@+id/item_registration_number"
-            app:layout_constraintTop_toBottomOf="@+id/item_personal_data_collection"
             app:arrowItemTitle="@string/main_about_me_registration_number"
-            app:arrowItemAvatarSrc="@drawable/icon_registration_number"
-            app:arrowItemShowArrow="false"
             app:arrowItemContent="@string/main_about_me_registration_number_content"
+            app:arrowItemShowAvatar="false"
+            app:arrowItemShowArrow="false"
             style="@style/main_about_me_arrow_item"
             android:layout_width="match_parent"
-            android:layout_height="54dp"/>
+            android:layout_height="54dp" />
 
         <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
-            android:id="@+id/item_uploadlog"
-            app:layout_constraintTop_toBottomOf="@+id/sw_item_black"
-            app:arrowItemTitle="@string/main_about_upload_log"
-            app:arrowItemAvatarSrc="@drawable/icon_about"
+            android:id="@+id/item_policies"
+            app:arrowItemTitle="@string/main_about_me_policies"
+            app:arrowItemShowAvatar="false"
             style="@style/main_about_me_arrow_item"
             android:layout_width="match_parent"
-            android:layout_height="54dp"/>
-
-        <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
-            android:id="@+id/item_about"
-            app:layout_constraintTop_toBottomOf="@+id/item_registration_number"
-            app:arrowItemTitle="@string/main_about_me_about"
-            app:arrowItemAvatarSrc="@drawable/icon_about"
-            style="@style/main_about_me_arrow_item"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"/>
+            android:layout_height="54dp" />
 
         <TextView
-            android:text="@string/main_about_me_login"
+            android:text="@string/main_about_me_setting"
             android:layout_marginStart="16dp"
             android:layout_marginTop="4dp"
-            android:textStyle="bold"
+            android:layout_marginBottom="4dp"
             android:textAppearance="@style/Ease.TextAppearance.Label.Medium"
             android:textColor="@color/ease_details_subtitle2_color"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content" />
 
         <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
+            android:id="@+id/item_presence"
+            app:arrowItemTitle="@string/presence_status"
+            app:arrowItemShowAvatar="false"
+            style="@style/main_about_me_arrow_item"
+            android:layout_width="match_parent"
+            android:layout_height="54dp" />
+
+        <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
+            android:id="@+id/item_information"
+            app:arrowItemTitle="@string/main_about_me_information"
+            app:arrowItemShowAvatar="false"
+            style="@style/main_about_me_arrow_item"
+            android:layout_width="match_parent"
+            android:layout_height="54dp" />
+
+        <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
+            android:id="@+id/item_currency"
+            app:arrowItemTitle="@string/main_about_me_currency"
+            app:arrowItemShowAvatar="false"
+            style="@style/main_about_me_arrow_item"
+            android:layout_width="match_parent"
+            android:layout_height="54dp" />
+
+        <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
+            android:id="@+id/item_notify"
+            app:arrowItemTitle="@string/main_about_me_notify"
+            app:arrowItemShowAvatar="false"
+            style="@style/main_about_me_arrow_item"
+            android:layout_width="match_parent"
+            android:layout_height="54dp" />
+
+        <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
+            android:id="@+id/item_privacy"
+            app:arrowItemTitle="@string/main_about_me_block"
+            app:arrowItemShowAvatar="false"
+            style="@style/main_about_me_arrow_item"
+            android:layout_width="match_parent"
+            android:layout_height="54dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/about_me_logout"
-            app:layout_constraintTop_toBottomOf="@+id/sw_item_black"
-            app:arrowItemTitle="@string/main_about_me_logout"
-            style="@style/main_about_logout_arrow_item"
+            android:text="@string/main_about_me_logout"
+            android:textSize="16sp"
+            android:textColor="@color/ease_color_text_primary"
+            android:background="@drawable/demo_me_logout_btn_bg"
             android:layout_width="match_parent"
-            android:layout_height="54dp"/>
+            android:layout_height="50dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="28dp" />
 
-
-        <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/about_me_account_cancellation"
-            app:layout_constraintTop_toBottomOf="@+id/sw_item_black"
-            app:arrowItemTitle="@string/main_about_me_account_cancellation"
-            style="@style/main_about_account_cancellation_arrow_item"
+            android:text="@string/main_about_me_account_cancellation"
+            android:textSize="16sp"
+            android:textColor="@android:color/holo_red_light"
+            android:background="@android:color/transparent"
             android:layout_width="match_parent"
-            android:layout_height="54dp"/>
+            android:layout_height="50dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="12dp" />
 
     </androidx.appcompat.widget.LinearLayoutCompat>
 

@@ -11,6 +11,7 @@ import com.hyphenate.easeui.base.ChatUIKitBaseRecyclerViewAdapter
 import com.hyphenate.easeui.base.ChatUIKitBaseRecyclerViewAdapter.ViewHolder
 import com.hyphenate.easeui.databinding.UikitRowChatEmojiBigExpressionBinding
 import com.hyphenate.easeui.databinding.UikitRowChatEmojiExpressionBinding
+import com.hyphenate.easeui.databinding.UikitRowChatEmojiGifBinding
 import com.hyphenate.easeui.common.helper.ChatUIKitEmojiHelper
 import com.hyphenate.easeui.model.ChatUIKitEmojicon
 import com.hyphenate.easeui.model.ChatUIKitEmojicon.Type
@@ -70,6 +71,10 @@ object UIKitChatEmojiViewHolderFactory {
         return when (viewType) {
             Type.BIG_EXPRESSION -> {
                 UIKitChatEmojiGridViewHolder(UikitRowChatEmojiBigExpressionBinding
+                    .inflate(LayoutInflater.from(parent.context), parent, false).root)
+            }
+            Type.GIF -> {
+                UIKitChatEmojiGridViewHolder(UikitRowChatEmojiGifBinding
                     .inflate(LayoutInflater.from(parent.context), parent, false).root)
             }
             else -> {

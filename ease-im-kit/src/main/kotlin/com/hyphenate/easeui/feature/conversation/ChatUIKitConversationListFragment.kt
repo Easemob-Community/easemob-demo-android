@@ -228,7 +228,7 @@ open class ChatUIKitConversationListFragment: ChatUIKitBaseFragment<FragmentConv
     }
 
     open fun defaultActionMoreDialog(){
-        dialogController.showMoreDialog { content ->
+        dialogController.showMoreDialog(binding?.titleConversations?.findViewById(R.id.action_more)) { content ->
             if (content.isNotEmpty()) {
                 contactViewModel.addContact(content)
             }

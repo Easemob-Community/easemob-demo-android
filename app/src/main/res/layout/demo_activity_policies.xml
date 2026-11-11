@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ease_color_background"
+    android:orientation="vertical">
+
+    <com.hyphenate.easeui.widget.ChatUIKitTitleBar
+        android:id="@+id/title_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
+        android:id="@+id/item_privacy_policy"
+        app:arrowItemTitle="@string/main_about_me_privacy_policy"
+        app:arrowItemShowAvatar="false"
+        style="@style/main_about_me_arrow_item"
+        android:layout_width="match_parent"
+        android:layout_height="54dp" />
+
+    <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
+        android:id="@+id/item_terms_of_service"
+        app:arrowItemTitle="@string/main_about_me_terms_of_service"
+        app:arrowItemShowAvatar="false"
+        style="@style/main_about_me_arrow_item"
+        android:layout_width="match_parent"
+        android:layout_height="54dp" />
+
+    <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
+        android:id="@+id/item_third_party_data"
+        app:arrowItemTitle="@string/main_about_me_third_party_data"
+        app:arrowItemShowAvatar="false"
+        style="@style/main_about_me_arrow_item"
+        android:layout_width="match_parent"
+        android:layout_height="54dp" />
+
+    <com.hyphenate.easeui.widget.ChatUIKitArrowItemView
+        android:id="@+id/item_personal_data_collection"
+        app:arrowItemTitle="@string/main_about_me_personal_data_collection"
+        app:arrowItemShowAvatar="false"
+        style="@style/main_about_me_arrow_item"
+        android:layout_width="match_parent"
+        android:layout_height="54dp" />
+
+</LinearLayout>

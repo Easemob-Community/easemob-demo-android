@@ -53,6 +53,21 @@
     <string name="uikit_attach_file">File</string>
     <string name="uikit_attach_contact_card">Contact Card</string>
 
+    <string name="uikit_group_read_detail_title">Message Details</string>
+    <string name="uikit_group_read_tab_read">%1$d read</string>
+    <string name="uikit_group_read_tab_unread">%1$d unread</string>
+    <string name="uikit_group_read_tab_unread_unknown">Unread</string>
+    <string name="uikit_group_read_load_failed">Failed to load member info, please retry</string>
+    <string name="uikit_group_read_retry">Retry</string>
+    <string name="uikit_group_read_empty_read">No read receipts yet</string>
+    <string name="uikit_group_read_empty_unread">No unread members to show</string>
+    <string name="uikit_group_read_summary_photo">[Photo]</string>
+    <string name="uikit_group_read_summary_video">[Video]</string>
+    <string name="uikit_group_read_summary_voice">[Voice]</string>
+    <string name="uikit_group_read_summary_location">[Location]</string>
+    <string name="uikit_group_read_summary_file">[File]</string>
+    <string name="uikit_group_read_summary_cmd">[Command]</string>
+    <string name="uikit_group_read_summary_custom">[Custom]</string>
     <string name="uikit_group_ack_read_count">%1$d read</string>
     <string name="uikit_custom_message">Custom message: %1$s</string>
     <string name="uikit_have_uploaded">Uploaded</string>
@@ -83,6 +98,12 @@
     <string name="uikit_chat_record_voice_time">%1$ds</string>
 
     <!-- chat attachment -->
+    <string name="uikit_view_original_image">View Original</string>
+    <string name="uikit_view_thumbnail_image">View Large Image</string>
+    <string name="uikit_downloading_image">Downloading&#8230; %1$d%%</string>
+    <string name="uikit_save_image">Save Image</string>
+    <string name="uikit_save_image_success">Image saved to gallery</string>
+    <string name="uikit_save_image_failed">Failed to save image</string>
     <string name="uikit_download_the_pictures">Downloading image: 0%</string>
     <string name="uikit_image_expired">Image expired</string>
     <string name="uikit_download_the_pictures_new">Downloading image:</string>
@@ -152,6 +173,7 @@
 
     <!-- chat new -->
     <string name="uikit_chat_new_conversation">New Chat</string>
+    <string name="uikit_chat_new_group_created">Group chat created, %1$s joined</string>
     <string name="uikit_chat_new_group_welcome">Group %1$s has been created.</string>
 
     <!-- conversation menu -->

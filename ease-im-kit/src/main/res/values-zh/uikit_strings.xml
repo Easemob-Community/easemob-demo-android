@@ -53,6 +53,21 @@
     <string name="uikit_attach_file">文件</string>
     <string name="uikit_attach_contact_card">名片</string>
 
+    <string name="uikit_group_read_detail_title">消息详情</string>
+    <string name="uikit_group_read_tab_read">%1$d人已读</string>
+    <string name="uikit_group_read_tab_unread">%1$d人未读</string>
+    <string name="uikit_group_read_tab_unread_unknown">未读</string>
+    <string name="uikit_group_read_load_failed">成员信息加载失败，请重试</string>
+    <string name="uikit_group_read_retry">重试</string>
+    <string name="uikit_group_read_empty_read">暂无已读成员</string>
+    <string name="uikit_group_read_empty_unread">暂无可显示的未读成员</string>
+    <string name="uikit_group_read_summary_photo">[图片]</string>
+    <string name="uikit_group_read_summary_video">[视频]</string>
+    <string name="uikit_group_read_summary_voice">[语音]</string>
+    <string name="uikit_group_read_summary_location">[位置]</string>
+    <string name="uikit_group_read_summary_file">[文件]</string>
+    <string name="uikit_group_read_summary_cmd">[命令]</string>
+    <string name="uikit_group_read_summary_custom">[自定义]</string>
     <string name="uikit_group_ack_read_count">%1$d人已读</string>
     <string name="uikit_custom_message">自定义消息: %1$s</string>
     <string name="uikit_have_uploaded">已上传</string>
@@ -83,6 +98,12 @@
     <string name="uikit_chat_record_voice_time">%1$ds</string>
 
     <!-- chat attachment -->
+    <string name="uikit_view_original_image">查看原图</string>
+    <string name="uikit_view_thumbnail_image">查看大图</string>
+    <string name="uikit_downloading_image">下载中&#8230; %1$d%%</string>
+    <string name="uikit_save_image">保存图片</string>
+    <string name="uikit_save_image_success">图片已保存到相册</string>
+    <string name="uikit_save_image_failed">图片保存失败</string>
     <string name="uikit_download_the_pictures">下载图片中: 0%</string>
     <string name="uikit_image_expired">图片已过期</string>
     <string name="uikit_download_the_pictures_new">下载图片中：</string>
@@ -152,6 +173,7 @@
 
     <!-- chat new -->
     <string name="uikit_chat_new_conversation">新会话</string>
+    <string name="uikit_chat_new_group_created">群聊已创建 %1$s 加入群聊</string>
     <string name="uikit_chat_new_group_welcome">群组 %1$s 创建成功</string>
 
     <!-- conversation menu -->

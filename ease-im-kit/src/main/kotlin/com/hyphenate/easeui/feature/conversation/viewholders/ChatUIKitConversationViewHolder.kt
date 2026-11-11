@@ -3,6 +3,7 @@ package com.hyphenate.easeui.feature.conversation.viewholders
 import android.graphics.drawable.Drawable
 import android.view.View
 import androidx.viewbinding.ViewBinding
+import coil.dispose
 import coil.load
 import com.hyphenate.easeui.ChatUIKitClient
 import com.hyphenate.easeui.R
@@ -77,6 +78,10 @@ class ChatUIKitConversationViewHolder(
                 }
                 name.text = displayInfo.name
                 if (displayInfo.avatar.isNullOrEmpty()) {
+                    // Cancel any in-flight request from a recycled row first,
+                    // otherwise its late completion overwrites the placeholder
+                    // with the previous conversation's avatar.
+                    avatar.dispose()
                     avatar.setImageResource(placeholderRes)
                 } else {
                     avatar.load(displayInfo.avatar) {

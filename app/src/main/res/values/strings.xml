@@ -180,6 +180,16 @@
     <string name="main_about_me_id">ID: %1$s</string>
     <string name="main_about_me_account_cancellation">Account Cancellation</string>
     <string name="main_account_cancellation">Account cancellation is not supported in this mode</string>
+    <string name="main_about_me_visit_easemob">Visit Easemob</string>
+    <string name="main_about_me_visit_easemob_content">www.easemob.com</string>
+    <string name="main_about_me_business_phone">400-622-1776</string>
+    <string name="main_about_me_sdk_version">SDK Version</string>
+    <string name="main_about_me_uikit_version">UIKit Version</string>
+    <string name="main_about_me_policies">Privacy &amp; Agreements</string>
+    <string name="main_about_me_block">Blocked List</string>
+    <string name="main_about_me_information_sign">Signature</string>
+    <string name="main_about_me_information_edit_sign">Edit Signature</string>
+    <string name="main_about_me_sign_placeholder">My signature</string>
 
     <!-- callkit -->
     <string name="call_duration">Call duration: %1$s</string>
@@ -217,7 +227,11 @@
     <string name="uikit_conv_dialog_add_contact">Search contacts by phone number or ID.</string>
     <string name="uikit_dialog_edit_input_id_hint">User ID</string>
 
-    <string name="demo_chat_fraud_prefix">Don\'t trust remittance or prize info. Stay alert for calls from unknown numbers and report anything suspicious.</string>
+    <string name="demo_chat_watermark">Easemob Demo | For reference only | Beware of fraud</string>
+    <string name="demo_title_conversations">Chats</string>
+    <string name="demo_title_contacts">Contacts</string>
+    <string name="demo_chat_fraud_title">Demo only | Data cleared daily at 00:00</string>
+    <string name="demo_chat_fraud_prefix">Do not trust requests for transfers or prize claims. Be cautious of unknown callers and report suspicious activity immediately.</string>
     <string name="demo_chat_fraud_report">Report</string>
     <string name="demo_chat_fraud_report_toast">Thank you for your report and we will deal with it as soon as possible.</string>
 

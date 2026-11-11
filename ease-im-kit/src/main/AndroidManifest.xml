@@ -88,6 +88,9 @@
         <!-- Chat history activity for combine message -->
         <activity android:name=".feature.chat.activities.ChatUIKitHistoryActivity"
             android:exported="false"/>
+        <!-- Group message read-receipt detail activity -->
+        <activity android:name=".feature.chat.activities.ChatUIKitGroupReadDetailActivity"
+            android:exported="false"/>
         <!-- Chat search message result activity -->
         <activity android:name=".feature.chat.activities.ChatUIKitMessageSearchResultActivity"
             android:exported="false"/>

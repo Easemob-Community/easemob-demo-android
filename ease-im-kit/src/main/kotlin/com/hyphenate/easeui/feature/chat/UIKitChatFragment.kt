@@ -590,6 +590,10 @@ open class UIKitChatFragment: ChatUIKitBaseFragment<UikitFragmentChatBinding>(),
         return chatItemClickListener?.onResendClick(message) ?: false
     }
 
+    override fun onReadReceiptClick(message: ChatMessage?): Boolean {
+        return chatItemClickListener?.onReadReceiptClick(message) ?: false
+    }
+
     override fun onUserAvatarClick(userId: String?) {
         chatItemClickListener?.onUserAvatarClick(userId)
         ?: kotlin.run {

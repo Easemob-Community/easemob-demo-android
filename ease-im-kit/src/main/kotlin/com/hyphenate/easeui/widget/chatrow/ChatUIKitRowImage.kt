@@ -21,6 +21,7 @@ import com.hyphenate.easeui.common.extensions.isSend
 import com.hyphenate.easeui.common.extensions.isSuccess
 import com.hyphenate.easeui.common.extensions.loadImageFromMessage
 import com.hyphenate.easeui.common.extensions.mainScope
+import com.hyphenate.easeui.common.extensions.setLayoutSize
 import com.hyphenate.easeui.common.utils.ChatUIKitFileUtils
 import com.hyphenate.easeui.feature.chat.UIKitChatFragment.Companion.retryTimes
 import com.hyphenate.util.EMLog
@@ -46,7 +47,6 @@ open class ChatUIKitRowImage @JvmOverloads constructor(
 
     override fun onSetUpView() {
         bubbleLayout?.background = null
-        imageView?.dispose()
         message?.run {
             (body as? ChatImageMessageBody)?.let {
                 if (isSuccess() && it.thumbnailDownloadStatus() == ChatDownloadStatus.DOWNLOADING) {
@@ -57,6 +57,7 @@ open class ChatUIKitRowImage @JvmOverloads constructor(
                     showImageView(this, position)
                     return
                 }
+                imageView?.dispose()
                 checkAttachmentStatus(position)
             }
         }
@@ -115,9 +116,9 @@ open class ChatUIKitRowImage @JvmOverloads constructor(
     private fun showPlaceholderSize(message: ChatMessage) {
         imageView?.setImageResource(R.drawable.uikit_default_image)
         message.getPlaceholderShowSize(context)?.let {
-            imageView?.layoutParams = ViewGroup.LayoutParams(it.width, it.height)
+            imageView?.setLayoutSize(it.width, it.height)
         } ?: run {
-            imageView?.layoutParams = ViewGroup.LayoutParams(
+            imageView?.setLayoutSize(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
@@ -172,7 +173,9 @@ open class ChatUIKitRowImage @JvmOverloads constructor(
             "onDownloadAttachmentError:$code, error:$error"
         )
         context.mainScope().launch {
-            imageView?.layoutParams = ViewGroup.LayoutParams(
+            imageLoadInFlight = false
+            imageLoadedMessage = null
+            imageView?.setLayoutSize(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
@@ -185,17 +188,58 @@ open class ChatUIKitRowImage @JvmOverloads constructor(
     }
 
     /**
-     * load image into image view
-     *
+     * The message whose image is currently displayed (or loading) in this row
+     * instance. Compared by object identity first; on send success the SDK may
+     * hand out a NEW message instance whose msgId/localUri/remoteUrl all changed
+     * (the file is moved to the attachment directory), so [sameLogicalMessage]
+     * (localTime + from + msgId) is used as the fallback identity: the image
+     * content of a logical message never changes, and reloading it would only
+     * flash the view.
      */
     @SuppressLint("StaticFieldLeak")
+    private var imageLoadedMessage: ChatMessage? = null
+    private var imageLoadInFlight = false
+
+    private fun sameLogicalMessage(a: ChatMessage?, b: ChatMessage?): Boolean {
+        if (a == null || b == null) return false
+        return a === b || (a.localTime() == b.localTime()
+                && a.from == b.from) || a.msgId == b.msgId
+    }
+
     protected fun showImageView(message: ChatMessage?, position: Int) {
         if (position == this.position && TextUtils.equals(
                 message?.msgId,
                 this.message?.msgId
             )
         ) {
-            imageView?.loadImageFromMessage(message)
+            val drawableShown = imageView?.drawable != null
+            if (message != null && sameLogicalMessage(imageLoadedMessage, message)
+                && (imageLoadInFlight || drawableShown)
+            ) {
+                // Already showing (or loading) this logical message's image:
+                // keep it, just track the newest instance.
+                imageLoadedMessage = message
+                return
+            }
+            if (!sameLogicalMessage(imageLoadedMessage, message)) {
+                // The row was recycled and bound to another message: reset to the
+                // placeholder first, otherwise the previous message's image stays
+                // on the view (Coil also uses the current drawable as placeholder)
+                // and the wrong cover is visible while the new image decodes.
+                imageLoadedMessage = null
+                imageLoadInFlight = false
+                imageView?.dispose()
+                imageView?.setImageResource(R.drawable.uikit_default_image)
+            }
+            imageLoadInFlight = true
+            imageLoadedMessage = message
+            imageView?.loadImageFromMessage(message, onSuccess = {
+                imageLoadInFlight = false
+                imageLoadedMessage = message
+            }, onError = {
+                imageLoadInFlight = false
+                imageLoadedMessage = null
+            })
         }
     }
 }

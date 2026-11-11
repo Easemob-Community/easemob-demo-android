@@ -174,7 +174,11 @@ open class ChatUIKitCreateThreadFragment: ChatUIKitBaseFragment<UikitFragmentThr
 
                 override fun onExpressionClicked(emojiIcon: Any?) {
                     if (emojiIcon is ChatUIKitEmojicon){
-                        threadSendBigExpressionMessage(emojiIcon.name, emojiIcon.identityCode)
+                        if (emojiIcon.type === ChatUIKitEmojicon.Type.GIF) {
+                            chatThreadController.sendGifMessage(emojiIcon.identityCode)
+                        } else {
+                            threadSendBigExpressionMessage(emojiIcon.name, emojiIcon.identityCode)
+                        }
                     }
                 }
 

@@ -30,6 +30,13 @@ interface OnMessageListItemClickListener {
     fun onResendClick(message: ChatMessage?): Boolean
 
     /**
+     * Click the group read-receipt status of a sent group message.
+     * If you want handle it, return true and add your own logic.
+     * @param message
+     */
+    fun onReadReceiptClick(message: ChatMessage?): Boolean = false
+
+    /**
      * Click the user avatar.
      * @param userId
      */

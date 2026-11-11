@@ -317,7 +317,8 @@ class ChatUIKitInputMenu @JvmOverloads constructor(
     override fun onExpressionClicked(emojiIcon: Any?) {
         if (emojiIcon is ChatUIKitEmojicon) {
             val easeEmojicon: ChatUIKitEmojicon = emojiIcon
-            if (easeEmojicon.type !== ChatUIKitEmojicon.Type.BIG_EXPRESSION) {
+            if (easeEmojicon.type !== ChatUIKitEmojicon.Type.BIG_EXPRESSION
+                && easeEmojicon.type !== ChatUIKitEmojicon.Type.GIF) {
                 primaryMenu?.onEmojiconInputEvent(
                     easeEmojicon.emojiText.getEmojiText(context)
                 )

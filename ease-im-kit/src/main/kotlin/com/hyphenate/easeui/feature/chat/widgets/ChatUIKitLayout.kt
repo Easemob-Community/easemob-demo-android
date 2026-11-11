@@ -47,7 +47,9 @@ import com.hyphenate.easeui.common.extensions.lifecycleScope
 import com.hyphenate.easeui.common.extensions.mainScope
 import com.hyphenate.easeui.common.extensions.showToast
 import com.hyphenate.easeui.common.extensions.toUser
+import com.hyphenate.easeui.common.ChatCallback
 import com.hyphenate.easeui.common.helper.ChatUIKitAtMessageHelper
+import com.hyphenate.easeui.common.helper.ChatUIKitReadReceiptHelper
 import com.hyphenate.easeui.databinding.UikitLayoutChatBinding
 import com.hyphenate.easeui.feature.chat.enums.ChatUIKitType
 import com.hyphenate.easeui.feature.chat.enums.ChatUIKitLoadDataType
@@ -58,6 +60,7 @@ import com.hyphenate.easeui.feature.chat.controllers.ChatUIKitMessageReplyContro
 import com.hyphenate.easeui.feature.chat.controllers.ChatUIKitMessageTranslationController
 import com.hyphenate.easeui.feature.chat.controllers.ChatUIKitNotificationController
 import com.hyphenate.easeui.feature.chat.controllers.ChatUIKitPinMessageController
+import com.hyphenate.easeui.feature.chat.activities.ChatUIKitGroupReadDetailActivity
 import com.hyphenate.easeui.feature.chat.enums.getConversationType
 import com.hyphenate.easeui.feature.chat.forward.ChatUIKitMessageForwardDialogFragment
 import com.hyphenate.easeui.feature.chat.interfaces.ChatInputMenuListener
@@ -452,6 +455,19 @@ class ChatUIKitLayout @JvmOverloads constructor(
                 return true
             }
 
+            override fun onReadReceiptClick(message: ChatMessage?): Boolean {
+                if (listener?.onReadReceiptClick(message) == true) {
+                    return true
+                }
+                // Default: open the group read-receipt detail page.
+                message?.let {
+                    if (it.chatType === ChatType.GroupChat) {
+                        ChatUIKitGroupReadDetailActivity.actionStart(context, it.msgId)
+                    }
+                }
+                return true
+            }
+
             override fun onUserAvatarClick(userId: String?) {
                 listener?.onUserAvatarClick(userId)
             }
@@ -544,8 +560,13 @@ class ChatUIKitLayout @JvmOverloads constructor(
             }
 
             override fun onExpressionClicked(emojiIcon: Any?) {
-                if (emojiIcon is ChatUIKitEmojicon)
-                    viewModel?.sendBigExpressionMessage(emojiIcon.name, emojiIcon.identityCode)
+                if (emojiIcon is ChatUIKitEmojicon) {
+                    if (emojiIcon.type === ChatUIKitEmojicon.Type.GIF) {
+                        viewModel?.sendGifMessage(emojiIcon.identityCode)
+                    } else {
+                        viewModel?.sendBigExpressionMessage(emojiIcon.name, emojiIcon.identityCode)
+                    }
+                }
             }
 
             override fun onPressToSpeakBtnTouch(v: View?, event: MotionEvent?): Boolean {
@@ -868,6 +889,10 @@ class ChatUIKitLayout @JvmOverloads constructor(
 
     override fun sendBigExpressionMessage(name: String?, identityCode: String?) {
         viewModel?.sendBigExpressionMessage(name, identityCode)
+    }
+
+    override fun sendGifMessage(gifName: String?) {
+        viewModel?.sendGifMessage(gifName)
     }
 
     override fun sendVoiceMessage(filePath: String?, length: Int) {
@@ -1285,7 +1310,8 @@ class ChatUIKitLayout @JvmOverloads constructor(
                 if (!TextUtils.equals(message.conversationId(), conversationId)) {
                     return
                 }
-                viewModel?.sendMessageReadReceipt(message.msgId)
+                // Goes through the shared helper so this never acks twice.
+                ChatUIKitReadReceiptHelper.markMessageAsRead(message)
             }
         }
     }
@@ -1296,7 +1322,18 @@ class ChatUIKitLayout @JvmOverloads constructor(
                 conversationId
             )
         ) {
-            viewModel?.sendGroupMessageReadReceipt(message.msgId, "")
+            // Goes through the shared helper so this never acks twice.
+            ChatUIKitReadReceiptHelper.markMessageAsRead(message, object : ChatCallback {
+                override fun onSuccess() {
+                    sendGroupMessageReadReceiptSuccess()
+                }
+
+                override fun onError(code: Int, error: String?) {
+                    sendGroupMessageReadReceiptFail(code, error)
+                }
+
+                override fun onProgress(progress: Int, status: String?) {}
+            })
         }
     }
 

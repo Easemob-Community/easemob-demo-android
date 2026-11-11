@@ -23,6 +23,7 @@ import com.hyphenate.chatdemo.DemoHelper
 import com.hyphenate.chatdemo.R
 import com.hyphenate.chatdemo.common.DemoConstant
 import com.hyphenate.chatdemo.common.DeveloperModeHelper
+import com.hyphenate.easeui.common.ChatClient
 import com.hyphenate.chatdemo.databinding.DemoActivityMeInformationBinding
 import com.hyphenate.chatdemo.ui.me.controller.CameraAndCroppingController
 import com.hyphenate.chatdemo.utils.CameraAndCropFileUtils
@@ -75,6 +76,7 @@ class UserInformationActivity:ChatUIKitBaseActivity<DemoActivityMeInformationBin
         private const val RESULT_CODE_CAMERA = 114
         private const val RESULT_CODE_LOCAL = 115
         private const val RESULT_CODE_UPDATE_NAME = 116
+        private const val RESULT_CODE_UPDATE_SIGN = 117
         private const val RESULT_REFRESH = "isRefresh"
     }
 
@@ -110,6 +112,10 @@ class UserInformationActivity:ChatUIKitBaseActivity<DemoActivityMeInformationBin
         ActivityResultContracts.StartActivityForResult()
     ) { result -> onActivityResult(result, RESULT_CODE_UPDATE_NAME) }
 
+    private val launcherToUpdateSign: ActivityResultLauncher<Intent> = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result -> onActivityResult(result, RESULT_CODE_UPDATE_SIGN) }
+
 
     private val launcherToMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         // Callback is invoked after the user selects a media item or closes the
@@ -131,10 +137,24 @@ class UserInformationActivity:ChatUIKitBaseActivity<DemoActivityMeInformationBin
     private fun initView(){
         ChatUIKitClient.getConfig()?.avatarConfig?.setAvatarStyle(binding.ivAvatar)
         binding.run {
-            ivAvatar.setRadius(8.dpToPx(this@UserInformationActivity))
+            // Round avatar, aligned with iOS.
+            ivAvatar.setRadius(20.dpToPx(this@UserInformationActivity))
             ivAvatar.scaleType = ImageView.ScaleType.CENTER_CROP
         }
         updateLocalData()
+        fetchSignature()
+    }
+
+    private fun fetchSignature(){
+        val userId = ChatClient.getInstance().currentUser ?: return
+        lifecycleScope.launch {
+            model = ViewModelProvider(this@UserInformationActivity)[ProfileInfoViewModel::class.java]
+            model.fetchUserInfoAttribute(listOf(userId), listOf(com.hyphenate.easeui.common.ChatUserInfoType.SIGN))
+                .catchChatException { ChatLog.e("UserInformationActivity", "fetch sign failed: ${it.description}") }
+                .collect { map ->
+                    binding.tvSign.text = map?.get(userId)?.signature ?: ""
+                }
+        }
     }
 
     private fun initListener(){
@@ -142,6 +162,11 @@ class UserInformationActivity:ChatUIKitBaseActivity<DemoActivityMeInformationBin
             titleBar.setNavigationOnClickListener{ finish() }
             avatarLayout.setOnClickListener(this@UserInformationActivity)
             nickNameLayout.setOnClickListener(this@UserInformationActivity)
+            signLayout.setOnClickListener {
+                val intent = Intent(mContext, EditUserSignActivity::class.java)
+                intent.putExtra(EditUserSignActivity.EXTRA_SIGN, binding.tvSign.text?.toString() ?: "")
+                launcherToUpdateSign.launch(intent)
+            }
         }
     }
 
@@ -262,6 +287,15 @@ class UserInformationActivity:ChatUIKitBaseActivity<DemoActivityMeInformationBin
                         }
                     }
                 }
+                RESULT_CODE_UPDATE_SIGN -> {
+                    data?.let {
+                        if (it.hasExtra(RESULT_REFRESH) && it.getBooleanExtra(RESULT_REFRESH,false)){
+                            it.getStringExtra(EditUserSignActivity.EXTRA_SIGN)?.let { sign ->
+                                updateUserSign(sign)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -355,6 +389,28 @@ class UserInformationActivity:ChatUIKitBaseActivity<DemoActivityMeInformationBin
                         ChatUIKitClient.updateCurrentUser(profile)
                     }
                     binding.tvNickName.text = nickname
+                    ChatUIKitFlowBus.with<ChatUIKitEvent>(ChatUIKitEvent.EVENT.UPDATE + ChatUIKitEvent.TYPE.CONTACT)
+                        .post(lifecycleScope, ChatUIKitEvent(DemoConstant.EVENT_UPDATE_SELF, ChatUIKitEvent.TYPE.CONTACT))
+                }
+        }
+    }
+
+    private fun updateUserSign(sign: String){
+        lifecycleScope.launch {
+            model.updateUserSign(sign)
+                .onStart {
+                    showLoading(true)
+                }
+                .onCompletion { dismissLoading() }
+                .catchChatException { e ->
+                    ChatLog.e("TAG", "updateUserSign fail error message = " + e.description)
+                    mainScope().launch {
+                        mContext.showToast("updateUserSign error ${e.errorCode} ${e.description}")
+                    }
+                }
+                .stateIn(lifecycleScope, SharingStarted.WhileSubscribed(5000), null)
+                .collect {
+                    binding.tvSign.text = sign
                     ChatUIKitFlowBus.with<ChatUIKitEvent>(ChatUIKitEvent.EVENT.UPDATE + ChatUIKitEvent.TYPE.CONTACT)
                         .post(lifecycleScope, ChatUIKitEvent(DemoConstant.EVENT_UPDATE_SELF, ChatUIKitEvent.TYPE.CONTACT))
                 }

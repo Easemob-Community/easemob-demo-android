@@ -71,7 +71,7 @@
     <string name="server_set_dialog_confirm_button_text">重启</string>
 
     <string name="em_main_title_home">会话</string>
-    <string name="em_main_title_friends">通讯录</string>
+    <string name="em_main_title_friends">联系人</string>
     <string name="em_main_title_me">我</string>
 
     <string name="menu_voice_call">语音呼叫</string>
@@ -179,6 +179,16 @@
     <string name="main_about_me_id">ID: %1$s</string>
     <string name="main_about_me_account_cancellation">注销账户</string>
     <string name="main_account_cancellation">当前模式下不支持注销账号</string>
+    <string name="main_about_me_visit_easemob">访问环信官网</string>
+    <string name="main_about_me_visit_easemob_content">www.easemob.com</string>
+    <string name="main_about_me_business_phone">400-622-1776</string>
+    <string name="main_about_me_sdk_version">SDK 版本</string>
+    <string name="main_about_me_uikit_version">UIKit 版本</string>
+    <string name="main_about_me_policies">隐私与协议</string>
+    <string name="main_about_me_block">黑名单</string>
+    <string name="main_about_me_information_sign">签名</string>
+    <string name="main_about_me_information_edit_sign">编辑签名</string>
+    <string name="main_about_me_sign_placeholder">我的签名</string>
 
     <!-- callkit -->
     <string name="call_duration">通话时长: %1$s</string>
@@ -216,7 +226,11 @@
     <string name="uikit_conv_dialog_add_contact">通过手机号或ID添加联系人</string>
     <string name="uikit_dialog_edit_input_id_hint">手机号、ID</string>
 
-    <string name="demo_chat_fraud_prefix">请勿轻信任何关于汇款、中奖等信息，务必提高警惕，谨慎对待来自陌生号码的电话。如遇可疑情况，请及时向相关部门反馈并采取必要的防范措施。</string>
+    <string name="demo_chat_watermark">环信 Demo　仅供参考，谨防诈骗！</string>
+    <string name="demo_title_conversations">会话</string>
+    <string name="demo_title_contacts">联系人</string>
+    <string name="demo_chat_fraud_title">本 Demo 仅供体验 | 数据每日 00:00 清除</string>
+    <string name="demo_chat_fraud_prefix">请勿轻信转账、汇款、中奖等信息，谨慎接听陌生来电，谨防诈骗。发现可疑情况请立即举报。</string>
     <string name="demo_chat_fraud_report">点我举报</string>
     <string name="demo_chat_fraud_report_toast">感谢您的举报，我们将尽快处理。</string>
 

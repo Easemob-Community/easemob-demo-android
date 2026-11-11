@@ -8,7 +8,7 @@
     <color name="ease_conv_item_divider_color">@color/ease_color_outline_variant</color>
     <color name="ease_conv_item_selected_color">@color/ease_color_background_higher</color>
     <color name="ease_conv_item_pinned_color">@color/ease_color_background_high</color>
-    <color name="uikit_conv_item_unread_dot_bg">@color/ease_color_primary</color>
+    <color name="uikit_conv_item_unread_dot_bg">@color/ease_color_error</color>
     <color name="ease_conv_menu_item_title_color">@color/ease_primary_50</color>
     <color name="ease_conv_menu_item_divider_color">@color/ease_color_outline_variant</color>
 </resources>

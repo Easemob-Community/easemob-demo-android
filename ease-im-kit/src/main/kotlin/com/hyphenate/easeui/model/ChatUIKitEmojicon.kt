@@ -36,7 +36,12 @@ data class ChatUIKitEmojicon @JvmOverloads constructor(
         /**
          * big icon, send out directly when your press it
          */
-        BIG_EXPRESSION
+        BIG_EXPRESSION,
+
+        /**
+         * gif icon, send out the gif directly when your press it
+         */
+        GIF
     }
 }
 

@@ -11,6 +11,7 @@ import com.hyphenate.easeui.common.ChatCmdMessageBody
 import com.hyphenate.easeui.common.ChatConversation
 import com.hyphenate.easeui.common.ChatError
 import com.hyphenate.easeui.common.ChatGroup
+import com.hyphenate.easeui.common.ChatImageMessageBody
 import com.hyphenate.easeui.common.ChatLog
 import com.hyphenate.easeui.common.ChatMessage
 import com.hyphenate.easeui.common.ChatMessageBody
@@ -27,6 +28,7 @@ import com.hyphenate.easeui.common.extensions.isChatroom
 import com.hyphenate.easeui.common.extensions.isGroupChat
 import com.hyphenate.easeui.common.extensions.send
 import com.hyphenate.easeui.common.helper.ChatUIKitAtMessageHelper
+import com.hyphenate.easeui.common.helper.ChatUIKitGifHelper
 import com.hyphenate.easeui.common.impl.CallbackImpl
 import com.hyphenate.easeui.common.suspends.deleteMessage
 import com.hyphenate.easeui.common.utils.ChatUIKitFileUtils
@@ -172,6 +174,28 @@ open class ChatUIKitViewModel: ChatUIKitBaseViewModel<IHandleChatResultView>(), 
         }
         _conversation?.let {
             val message: ChatMessage? = createExpressionMessage(it.conversationId(), name, identityCode)
+            sendMessage(message)
+        }
+    }
+
+    override fun sendGifMessage(gifName: String?) {
+        val context = ChatUIKitClient.getContext() ?: run {
+            inMainScope {
+                view?.onErrorBeforeSending(ChatError.INVALID_PARAM, "Context is null.")
+            }
+            return
+        }
+        safeInConvScope {
+            val path = ChatUIKitGifHelper.sandboxGifPath(context, gifName)
+            if (path == null) {
+                inMainScope {
+                    view?.onErrorBeforeSending(ChatError.INVALID_PARAM, "Gif not found: $gifName")
+                }
+                return@safeInConvScope
+            }
+            val message = ChatMessage.createGifImageMessage(path, it.conversationId())
+            // Send the original gif so the receiver gets the animated file.
+            (message.body as? ChatImageMessageBody)?.setSendOriginalImage(true)
             sendMessage(message)
         }
     }
@@ -338,8 +362,9 @@ open class ChatUIKitViewModel: ChatUIKitBaseViewModel<IHandleChatResultView>(), 
                     setIsChatThreadMessage(it.isChatThread)
                 }
                 // The global requireAck option was removed from the SDK. Request the read
-                // receipt for single chat messages to keep the previous read-status behavior.
-                if (!it.isGroupChat && !it.isChatroom) {
+                // receipt to keep the read-status behavior, it works for both single and
+                // group chat messages.
+                if (!it.isChatroom) {
                     setIsNeedReadReceipt(true)
                 }
                 if (ChatUIKitClient.getConfig()?.chatConfig?.compatibilityModeForUserInfo == true) {

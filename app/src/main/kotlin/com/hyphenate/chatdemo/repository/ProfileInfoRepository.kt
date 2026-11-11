@@ -47,7 +47,12 @@ class ProfileInfoRepository: BaseRepository()  {
             val user = DemoHelper.getInstance().getDataModel().getUser(currentProfile.id)
             ChatLog.e("ProfileInfoRepository","synchronizeProfile $user $isSyncFromServer - $currentProfile")
             suspendCoroutine { continuation ->
-                if (user == null || isSyncFromServer){
+                // Fetch from the chat server when there is no local record or the
+                // local one is incomplete, otherwise the title bar keeps showing
+                // the default placeholder forever.
+                val needFetch = user == null || isSyncFromServer
+                        || user?.name.isNullOrEmpty() || user?.avatar.isNullOrEmpty()
+                if (needFetch){
                     currentProfile.let { profile->
                         val ids = mutableListOf(profile.id)
                         val type = mutableListOf(ChatUserInfoType.NICKNAME,ChatUserInfoType.AVATAR_URL)
@@ -76,8 +81,8 @@ class ProfileInfoRepository: BaseRepository()  {
                 }else{
                     ChatLog.e("ProfileInfoRepository","fetchLocalUserInfo")
                     currentProfile.let {
-                        it.name = user.name
-                        it.avatar = user.avatar
+                        it.name = user?.name
+                        it.avatar = user?.avatar
                         ChatUIKitClient.updateUsersInfo(mutableListOf(it))
                     }
                     continuation.resume(currentProfile)
@@ -125,6 +130,14 @@ class ProfileInfoRepository: BaseRepository()  {
     suspend fun updateNickname(nickname: String) =
         withContext(Dispatchers.IO) {
             ChatClient.getInstance().userInfoManager().updateOwnAttribute(ChatUserInfoType.NICKNAME, nickname)
+        }
+
+    /**
+     * Update user signature.
+     */
+    suspend fun updateSign(sign: String) =
+        withContext(Dispatchers.IO) {
+            ChatClient.getInstance().userInfoManager().updateOwnAttribute(ChatUserInfoType.SIGN, sign)
         }
 
     /**

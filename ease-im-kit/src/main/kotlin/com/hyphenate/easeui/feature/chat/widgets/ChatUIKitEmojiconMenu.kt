@@ -5,6 +5,7 @@ import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.LinearLayout
 import com.hyphenate.easeui.R
+import com.hyphenate.easeui.common.helper.ChatUIKitGifHelper
 import com.hyphenate.easeui.databinding.UikitWidgetChatEmojiconBinding
 import com.hyphenate.easeui.feature.chat.interfaces.ChatUIKitEmojiconMenuListener
 import com.hyphenate.easeui.feature.chat.interfaces.IChatEmojiconMenu
@@ -51,9 +52,14 @@ class ChatUIKitEmojiconMenu @JvmOverloads constructor(
         } else {
             entities.addAll(groupEntities)
         }
+        entities.add(ChatUIKitGifHelper.buildGifGroup(context))
         entities.forEach { groupEntity ->
             emojiconGroupList.add(groupEntity)
             binding.tabBar.addTab(groupEntity.icon)
+        }
+        // Show the tab bar when there is more than one group so users can switch to the gif page.
+        if (emojiconGroupList.size > 1) {
+            binding.tabBar.visibility = VISIBLE
         }
         binding.pagerView.setPagerViewListener(EmojiconPagerViewListener())
         binding.pagerView.init(emojiconGroupList, emojiconColumns, bigEmojiconColumns)

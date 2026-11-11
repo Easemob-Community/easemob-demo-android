@@ -85,9 +85,10 @@ object UIKitManager {
 
                 override fun getGroup(id: String?): ChatUIKitGroupProfile? {
                     ChatClient.getInstance().groupManager().getGroup(id)?.let {
-                        // The group avatar is synced by the SDK now; fall back to the extension for legacy data.
-                        return ChatUIKitGroupProfile(it.groupId, it.groupName,
-                            it.groupAvatar.takeIf { avatar -> avatar.isNotEmpty() } ?: it.extension)
+                        // Only the SDK synced group avatar is used: legacy extension
+                        // data may hold arbitrary values (even user avatar urls),
+                        // which used to show wrong images on group conversation rows.
+                        return ChatUIKitGroupProfile(it.groupId, it.groupName, it.groupAvatar)
                     }
                     return null
                 }

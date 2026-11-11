@@ -3,6 +3,7 @@ package com.hyphenate.easeui.common.extensions
 import android.app.Activity
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.ImageView.ScaleType
@@ -57,6 +58,32 @@ internal fun ImageView.loadAvatar(message: ChatMessage?,
     loadAvatar(message.getUserInfo(), placeholder, errorPlaceholder)
 }
 
+/**
+ * Update the view size while keeping the original layout params type and constraints.
+ * Replacing ConstraintLayout.LayoutParams with a plain ViewGroup.LayoutParams drops
+ * all constraints and causes visible jumps/flickers in the chat list.
+ */
+fun View.setLayoutSize(width: Int, height: Int) {
+    val lp = layoutParams ?: run {
+        layoutParams = ViewGroup.LayoutParams(width, height)
+        return
+    }
+    if (lp.width == width && lp.height == height) return
+    when (lp) {
+        is androidx.constraintlayout.widget.ConstraintLayout.LayoutParams -> {
+            lp.width = width
+            lp.height = height
+            layoutParams = lp
+        }
+        is ViewGroup.MarginLayoutParams -> {
+            lp.width = width
+            lp.height = height
+            layoutParams = lp
+        }
+        else -> layoutParams = ViewGroup.LayoutParams(width, height)
+    }
+}
+
 internal fun ImageView.loadImageFromLocalOrUrl(localUri: Uri?
                                                , remoteUrl: String?
                                                , showSize: ChatUIKitSize?
@@ -80,7 +107,7 @@ internal fun ImageView.loadImageFromLocalOrUrl(localUri: Uri?
             onSuccess = { _, _ ->
                 ChatLog.d("msg", "load image success")
                 showSize?.let {
-                    layoutParams = ViewGroup.LayoutParams(it.width, it.height)
+                    setLayoutSize(it.width, it.height)
                 }
                 onSuccess.invoke()
             },
@@ -114,6 +141,18 @@ fun ImageView.loadImageFromMessage(message: ChatMessage?
         val showSize = msg.getImageShowSize(context)
         val imageLocalUri = msg.getThumbnailLocalUri(context)
         setScaleType(scaleType)
+        // Pre-apply the final size (and a placeholder when the view is empty) before the
+        // async decode finishes, so a freshly sent image row is laid out at its final
+        // height immediately instead of popping from a collapsed wrap_content state.
+        if (showSize?.isEmpty() == false) {
+            setLayoutSize(showSize.width, showSize.height)
+            if (drawable == null) {
+                setImageResource(
+                    if (msg.type == ChatMessageType.IMAGE) R.drawable.uikit_default_image
+                    else R.drawable.uikit_default_video_thumbnail
+                )
+            }
+        }
         if (imageLocalUri != null && imageLocalUri.isFileExist(context)) {
             loadImageFromLocalOrUrl(imageLocalUri
                 , null
@@ -122,7 +161,7 @@ fun ImageView.loadImageFromMessage(message: ChatMessage?
                 else R.drawable.uikit_default_video_thumbnail
                 , onSuccess
                 , onError = {
-                    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT
+                    setLayoutSize(ViewGroup.LayoutParams.WRAP_CONTENT
                         , ViewGroup.LayoutParams.WRAP_CONTENT)
                     onError.invoke(it)
                 })
@@ -147,7 +186,7 @@ fun ImageView.loadImageFromMessage(message: ChatMessage?
             else R.drawable.uikit_default_video_thumbnail
             , onSuccess
             , onError = {
-                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT
+                setLayoutSize(ViewGroup.LayoutParams.WRAP_CONTENT
                     , ViewGroup.LayoutParams.WRAP_CONTENT)
                 onError.invoke(it)
             })

@@ -41,9 +41,9 @@
     <color name="demo_subtitle">@color/ease_color_text_secondary_high</color>
     <color name="demo_desc_bg">@color/ease_color_spacing_view</color>
 
-    <color name="demo_chat_fraud_bg">@color/ease_neutral_special_90</color>
-    <color name="demo_chat_fraud_text_prefix_color">@color/ease_neutral_30</color>
-    <color name="demo_chat_fraud_text_report_color">@color/ease_primary_60</color>
+    <color name="demo_chat_fraud_bg">#FFE8B3</color>
+    <color name="demo_chat_fraud_text_prefix_color">#171A1C</color>
+    <color name="demo_chat_fraud_text_report_color">#EB4F00</color>
 
 
 

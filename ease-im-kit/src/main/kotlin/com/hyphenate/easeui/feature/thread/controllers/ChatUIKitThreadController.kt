@@ -7,6 +7,7 @@ import com.hyphenate.easeui.common.ChatClient
 import com.hyphenate.easeui.common.ChatConversation
 import com.hyphenate.easeui.common.ChatConversationType
 import com.hyphenate.easeui.common.ChatGroup
+import com.hyphenate.easeui.common.ChatImageMessageBody
 import com.hyphenate.easeui.common.ChatLog
 import com.hyphenate.easeui.common.ChatMessage
 import com.hyphenate.easeui.common.ChatType
@@ -15,6 +16,7 @@ import com.hyphenate.easeui.common.extensions.getEmojiText
 import com.hyphenate.easeui.common.extensions.getMessageDigest
 import com.hyphenate.easeui.common.extensions.isGroupChat
 import com.hyphenate.easeui.common.helper.ChatUIKitAtMessageHelper
+import com.hyphenate.easeui.common.helper.ChatUIKitGifHelper
 import com.hyphenate.easeui.common.utils.ChatUIKitFileUtils
 import com.hyphenate.easeui.common.utils.createExpressionMessage
 import com.hyphenate.easeui.viewmodel.thread.IChatThreadRequest
@@ -87,6 +89,17 @@ class ChatUIKitThreadController(
         _conversation?.let {
             val message: ChatMessage? = createExpressionMessage(it.conversationId(), name, identityCode)
             message?.let { msg -> setMessage(msg) }
+        }
+    }
+
+    fun sendGifMessage(gifName: String?) {
+        val context = ChatUIKitClient.getContext() ?: return
+        viewModel?.checkoutConvScope()
+        _conversation?.let {
+            val path = ChatUIKitGifHelper.sandboxGifPath(context, gifName) ?: return@let
+            val message = ChatMessage.createGifImageMessage(path, it.conversationId())
+            (message.body as? ChatImageMessageBody)?.setSendOriginalImage(true)
+            setMessage(message)
         }
     }
 

@@ -178,6 +178,10 @@ class ChatUIKitMessageListLayout @JvmOverloads constructor(
         viewModel?.attachView(this)
 
         binding.messageList.layoutManager = LinearLayoutManager(context)
+        // Disable the default item animations: the insert fade/slide and change
+        // cross-fade make the just-sent row visibly flicker when it is inserted
+        // and when its status updates.
+        binding.messageList.itemAnimator = null
         messagesAdapter = ChatUIKitMessagesAdapter(itemConfig)
         messagesAdapter?.setHasStableIds(true)
         concatAdapter.addAdapter(messagesAdapter!!)
@@ -278,7 +282,9 @@ class ChatUIKitMessageListLayout @JvmOverloads constructor(
                 oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int
             ) {
                 if (isFirstLoadData && loadDataType != ChatUIKitLoadDataType.SEARCH) {
-                    listScrollController.smoothScrollToBottom()
+                    // Jump straight to the latest message: a smooth scroll here makes the
+                    // list visibly slide on every layout pass while the page opens.
+                    listScrollController.scrollToBottom()
                 } else {
                     binding.messageList.removeOnLayoutChangeListener(this)
                 }

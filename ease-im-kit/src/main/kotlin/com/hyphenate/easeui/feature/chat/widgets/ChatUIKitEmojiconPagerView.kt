@@ -95,7 +95,7 @@ class ChatUIKitEmojiconPagerView @JvmOverloads constructor(
         // Set viewPager's item view
         val pageViewBinding = UikitChatEmojiExpressionGridviewBinding.inflate(LayoutInflater.from(context))
 
-        var columns = if (emojiType === Type.BIG_EXPRESSION) {
+        var columns = if (emojiType === Type.BIG_EXPRESSION || emojiType === Type.GIF) {
             bigEmojiconColumns
         } else {
             emojiconColumns
@@ -103,7 +103,11 @@ class ChatUIKitEmojiconPagerView @JvmOverloads constructor(
         pageViewBinding.gridview.layoutManager = GridLayoutManager(context, columns)
         val gridAdapter = ChatUIKitEmojiGridAdapter()
         pageViewBinding.gridview.adapter = gridAdapter
-        pageViewBinding.gridview.addItemDecoration(ChatUIKitDividerGridItemDecoration(context, R.drawable.uikit_chat_emoji_expression_gridview_divider))
+        // Only the normal emoji grid uses the divider decoration, big expression and
+        // gif grids control their spacing with the item padding instead.
+        if (emojiType === Type.NORMAL) {
+            pageViewBinding.gridview.addItemDecoration(ChatUIKitDividerGridItemDecoration(context, R.drawable.uikit_chat_emoji_expression_gridview_divider))
+        }
         // To prevent the emoji from being obscured
         val addItems =
             if (emojiconList.size % columns == 0) columns + 1 else columns * 2 - emojiconList.size % columns + 1
@@ -115,7 +119,7 @@ class ChatUIKitEmojiconPagerView @JvmOverloads constructor(
             list.add(icon)
         }
         gridAdapter.setData(list)
-        if (emojiType === Type.BIG_EXPRESSION) {
+        if (emojiType === Type.BIG_EXPRESSION || emojiType === Type.GIF) {
             pageViewBinding.llAction.visibility = GONE
         } else {
             pageViewBinding.llAction.visibility = VISIBLE
@@ -175,18 +179,13 @@ class ChatUIKitEmojiconPagerView @JvmOverloads constructor(
 
     /**
      * get size of pages
+     * Each group renders exactly one vertically scrollable grid page, so every
+     * group always has exactly one page and the page math stays consistent.
      * @param groupEntity
      * @return
      */
     private fun getPageSize(groupEntity: ChatUIKitEmojiconGroupEntity): Int {
-        val emojiconList = groupEntity.emojiconList
-        var itemSize = emojiconColumns * emojiconRows - 1
-        val totalSize = emojiconList?.size ?: 0
-        val emojiType: Type? = groupEntity.type
-        if (emojiType === Type.BIG_EXPRESSION) {
-            itemSize = bigEmojiconColumns * bigEmojiconRows
-        }
-        return if (totalSize % itemSize == 0) totalSize / itemSize else totalSize / itemSize + 1
+        return 1
     }
 
     private inner class EmojiPagerChangeListener : OnPageChangeListener {

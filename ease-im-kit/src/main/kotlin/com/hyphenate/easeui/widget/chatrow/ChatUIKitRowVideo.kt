@@ -15,6 +15,7 @@ import com.hyphenate.easeui.common.ChatVideoMessageBody
 import com.hyphenate.easeui.common.extensions.isSend
 import com.hyphenate.easeui.common.extensions.isSuccess
 import com.hyphenate.easeui.common.extensions.loadImageFromMessage
+import coil.dispose
 import com.hyphenate.easeui.common.helper.DateFormatHelper
 import com.hyphenate.easeui.common.utils.ChatUIKitFileUtils
 
@@ -118,14 +119,47 @@ open class ChatUIKitRowVideo @JvmOverloads constructor(
     }
 
     /**
+     * The message whose thumbnail is currently displayed (or loading) in this
+     * row instance. The SDK may hand out a new message instance on send success
+     * (msgId/localThumbUri changed), so [sameLogicalMessage] (localTime + from +
+     * msgId) is used as the fallback identity: the content never changes, and
+     * reloading it would only flash the view.
+     */
+    private var thumbLoadedMessage: ChatMessage? = null
+    private var thumbLoadInFlight = false
+
+    private fun sameLogicalMessage(a: ChatMessage?, b: ChatMessage?): Boolean {
+        if (a == null || b == null) return false
+        return a === b || (a.localTime() == b.localTime()
+                && a.from == b.from) || a.msgId == b.msgId
+    }
+
+    /**
      * show video thumbnails
      * @param message
      */
     @SuppressLint("StaticFieldLeak")
     private fun showVideoThumbView(message: ChatMessage) {
+        if (sameLogicalMessage(thumbLoadedMessage, message)
+            && (thumbLoadInFlight || imageView?.drawable != null)) {
+            thumbLoadedMessage = message
+            return
+        }
+        if (!sameLogicalMessage(thumbLoadedMessage, message)) {
+            thumbLoadedMessage = null
+            thumbLoadInFlight = false
+            imageView?.dispose()
+            imageView?.setImageResource(R.drawable.uikit_default_video_thumbnail)
+        }
+        thumbLoadInFlight = true
+        thumbLoadedMessage = message
         imageView?.loadImageFromMessage(message, onSuccess = {
+            thumbLoadInFlight = false
+            thumbLoadedMessage = message
             playView?.visibility = VISIBLE
         }, onError = {
+            thumbLoadInFlight = false
+            thumbLoadedMessage = null
             playView?.visibility = GONE
         })
     }

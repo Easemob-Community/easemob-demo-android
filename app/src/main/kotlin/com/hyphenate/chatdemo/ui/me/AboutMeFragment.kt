@@ -4,17 +4,16 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import com.hyphenate.chat.EMClient
 import com.hyphenate.chatdemo.BuildConfig
 import com.hyphenate.chatdemo.DemoApplication
 import com.hyphenate.chatdemo.DemoHelper
@@ -28,6 +27,7 @@ import com.hyphenate.chatdemo.ui.login.LoginActivity
 import com.hyphenate.chatdemo.utils.EasePresenceUtil
 import com.hyphenate.chatdemo.viewmodel.LoginViewModel
 import com.hyphenate.chatdemo.viewmodel.PresenceViewModel
+import com.hyphenate.chatdemo.viewmodel.ProfileInfoViewModel
 import com.hyphenate.easeui.ChatUIKitClient
 import com.hyphenate.easeui.base.ChatUIKitBaseFragment
 import com.hyphenate.easeui.common.ChatClient
@@ -42,10 +42,7 @@ import com.hyphenate.easeui.configs.setStatusStyle
 import com.hyphenate.easeui.feature.contact.ChatUIKitBlockListActivity
 import com.hyphenate.easeui.model.ChatUIKitEvent
 import com.hyphenate.easeui.widget.ChatUIKitCustomAvatarView
-import com.hyphenate.util.EMLog
 import kotlinx.coroutines.launch
-import java.io.File
-import kotlin.math.log
 
 
 class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View.OnClickListener,
@@ -60,6 +57,23 @@ class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View
 
     private val presenceViewModel by lazy { ViewModelProvider(this)[PresenceViewModel::class.java] }
     private val presenceController by lazy { PresenceController(mContext,presenceViewModel) }
+    private val profileViewModel by lazy { ViewModelProvider(this)[ProfileInfoViewModel::class.java] }
+
+    private var signature = ""
+
+    private val launcherToEditSign: ActivityResultLauncher<Intent> = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            result.data?.let {
+                if (it.getBooleanExtra("isRefresh", false)) {
+                    it.getStringExtra(EditUserSignActivity.EXTRA_SIGN)?.let { sign ->
+                        updateSignature(sign)
+                    }
+                }
+            }
+        }
+    }
 
     // 连续点击计数器
     private var registrationClickCount = 0
@@ -82,6 +96,10 @@ class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View
         super.initView(savedInstanceState)
         initPresence()
         initStatus()
+        binding?.run {
+            itemSdkVersion.setContent("Easemob SDK v${BuildConfig.VERSION_NAME}")
+            itemUikitVersion.setContent("Easemob UIKit v${BuildConfig.VERSION_NAME}")
+        }
     }
     override fun initViewModel() {
         super.initViewModel()
@@ -94,18 +112,22 @@ class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View
         binding?.run {
             epPresence.setOnPresenceClickListener(this@AboutMeFragment)
             tvNumber.setOnClickListener(this@AboutMeFragment)
+            tvSign.setOnClickListener {
+                val intent = Intent(mContext, EditUserSignActivity::class.java)
+                intent.putExtra(EditUserSignActivity.EXTRA_SIGN, signature)
+                launcherToEditSign.launch(intent)
+            }
+            itemBusiness.setOnClickListener(this@AboutMeFragment)
+            itemWebsite.setOnClickListener(this@AboutMeFragment)
+            itemSdkVersion.setOnClickListener(this@AboutMeFragment)
+            itemUikitVersion.setOnClickListener(this@AboutMeFragment)
+            itemRegistrationNumber.setOnClickListener(this@AboutMeFragment)
+            itemPolicies.setOnClickListener(this@AboutMeFragment)
             itemPresence.setOnClickListener(this@AboutMeFragment)
             itemInformation.setOnClickListener(this@AboutMeFragment)
             itemCurrency.setOnClickListener(this@AboutMeFragment)
             itemNotify.setOnClickListener(this@AboutMeFragment)
             itemPrivacy.setOnClickListener(this@AboutMeFragment)
-            itemPrivacyPolicy.setOnClickListener(this@AboutMeFragment)
-            itemTermsOfService.setOnClickListener(this@AboutMeFragment)
-            itemThirdPartyData.setOnClickListener(this@AboutMeFragment)
-            itemPersonalDataCollection.setOnClickListener(this@AboutMeFragment)
-            itemRegistrationNumber.setOnClickListener(this@AboutMeFragment)
-            itemUploadlog.setOnClickListener(this@AboutMeFragment)
-            itemAbout.setOnClickListener(this@AboutMeFragment)
             aboutMeLogout.setOnClickListener(this@AboutMeFragment)
             aboutMeAccountCancellation.setOnClickListener(this@AboutMeFragment)
         }
@@ -118,6 +140,7 @@ class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View
     override fun initData() {
         super.initData()
         fetchCurrentPresence()
+        fetchSignature()
         initEvent()
     }
 
@@ -145,9 +168,11 @@ class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View
             epPresence.setPresenceStatusSize(resources.getDimensionPixelSize(com.hyphenate.easeui.R.dimen.ease_contact_status_icon_size))
 
             val layoutParams = epPresence.getUserAvatar().layoutParams
-            layoutParams.width = 100.dpToPx(mContext)
-            layoutParams.height = 100.dpToPx(mContext)
+            layoutParams.width = 64.dpToPx(mContext)
+            layoutParams.height = 64.dpToPx(mContext)
             epPresence.getUserAvatar().layoutParams = layoutParams
+            // Round avatar, aligned with iOS.
+            epPresence.getUserAvatar().setRadius(32.dpToPx(mContext))
 
             ChatUIKitClient.getCurrentUser()?.let {
                 epPresence.setUserAvatarData(it)
@@ -155,6 +180,28 @@ class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View
             }
             tvName.text = name
             tvNumber.text = id
+        }
+    }
+
+    private fun fetchSignature(){
+        val userId = ChatClient.getInstance().currentUser ?: return
+        lifecycleScope.launch {
+            profileViewModel.fetchUserInfoAttribute(listOf(userId), listOf(com.hyphenate.easeui.common.ChatUserInfoType.SIGN))
+                .catchChatException { ChatLog.e(TAG, "fetch sign failed: ${it.description}") }
+                .collect { map ->
+                    signature = map?.get(userId)?.signature ?: ""
+                    binding?.tvSign?.text = signature.ifEmpty { getString(R.string.main_about_me_sign_placeholder) }
+                }
+        }
+    }
+
+    private fun updateSignature(sign: String){
+        signature = sign
+        binding?.tvSign?.text = sign
+        lifecycleScope.launch {
+            profileViewModel.updateUserSign(sign)
+                .catchChatException { ChatLog.e(TAG, "update sign failed: ${it.description}") }
+                .collect { }
         }
     }
 
@@ -253,47 +300,20 @@ class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View
 
     }
 
-    private fun shareFile(fileUri: Uri?) {
-        if (fileUri != null) {
-            val shareIntent = Intent(Intent.ACTION_SEND)
-            shareIntent.setType("text/plain") // Change as per file type
-            shareIntent.putExtra(Intent.EXTRA_STREAM, fileUri)
-            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            EMLog.d("share:", shareIntent.toString())
-            // Start the share Intent
-            startActivity(Intent.createChooser(shareIntent, "Share file via"))
-        }
-    }
-
-    private fun getLogFile():Uri? {
-        var fileUri: Uri
-        // May null if storage is not currently available.
-        // Can use Environment.getExternalStorageState() to check.
-        val extDir = mContext.getExternalFilesDir(null)
-        val appkey = EMClient.getInstance().options.appKey
-        if (extDir != null) {
-            val logPath = extDir.getAbsolutePath()
-            val pos = logPath.indexOf("/files");
-            var basePath = logPath
-            if (pos == -1) {
-                basePath = logPath;
-            } else {
-                basePath = logPath.substring(0, pos);
-            }
-            val logFilePath = basePath + "/" + appkey + "/core_log/easemob.log";
-            EMLog.d("share:", logFilePath)
-            val file: File = File(logFilePath)
-            return FileProvider.getUriForFile(
-                mContext,
-                BuildConfig.APPLICATION_ID + ".fileProvider",
-                file
-            )
-        }
-        return null
-    }
-
     override fun onClick(v: View?) {
         when(v?.id){
+            R.id.item_business -> {
+                startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${getString(R.string.main_about_me_business_phone).replace("-", "")}")))
+            }
+            R.id.item_website -> {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.easemob.com")))
+            }
+            R.id.item_registration_number -> {
+                handleRegistrationNumberClick()
+            }
+            R.id.item_policies -> {
+                startActivity(Intent(mContext, PoliciesActivity::class.java))
+            }
             R.id.item_presence -> {
                 ChatUIKitClient.getCurrentUser()?.id?.let {
                     presenceController.showPresenceStatusDialog(PresenceCache.getUserPresence(it))
@@ -310,41 +330,6 @@ class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View
             }
             R.id.item_privacy -> {
                 startActivity(Intent(mContext, ChatUIKitBlockListActivity::class.java))
-            }
-            R.id.item_privacy_policy -> {
-                WebViewActivity.actionStart(mContext, WebViewLoadType.PrivacyPolicy)
-            }
-            R.id.item_terms_of_service -> {
-                WebViewActivity.actionStart(mContext, WebViewLoadType.TermsOfService)
-            }
-            R.id.item_third_party_data -> {
-                WebViewActivity.actionStart(mContext, WebViewLoadType.ThirdPartyDataSharing)
-            }
-            R.id.item_personal_data_collection -> {
-                val username = ChatClient.getInstance().currentUser ?: ""
-                val phone = DemoHelper.getInstance().getDataModel().getPhoneNumber()
-                val device = Build.MANUFACTURER + " " + Build.MODEL
-                val avatar = ChatUIKitClient.getCurrentUser()?.avatar ?: ""
-                
-                // Start WebView with parameters
-                WebViewActivity.actionStartWithParams(
-                    mContext, 
-                    WebViewLoadType.PersonalDataCollection,
-                    username = username,
-                    phone = phone,
-                    device = device,
-                    avatar = avatar
-                )
-            }
-            R.id.item_registration_number -> {
-                handleRegistrationNumberClick()
-            }
-            R.id.item_uploadlog-> {
-                    shareFile(getLogFile())
-            }
-            R.id.item_about -> {
-                val clazz = Class.forName("com.hyphenate.chatdemo.ui.me.AboutActivity")
-                startActivity(Intent(mContext, clazz))
             }
             R.id.about_me_logout -> {
                 showLogoutDialog()

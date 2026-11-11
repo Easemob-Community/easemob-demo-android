@@ -1,6 +1,7 @@
 package com.hyphenate.easeui.widget.chatrow
 
 import android.content.Context
+import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -17,6 +18,7 @@ import com.hyphenate.easeui.R
 import com.hyphenate.easeui.common.ChatClient
 import com.hyphenate.easeui.common.ChatMessage
 import com.hyphenate.easeui.common.ChatMessageStatus
+import com.hyphenate.easeui.common.ChatType
 import com.hyphenate.easeui.common.extensions.addChildView
 import com.hyphenate.easeui.common.extensions.getTheSameTypeChild
 import com.hyphenate.easeui.common.extensions.isFail
@@ -188,40 +190,17 @@ abstract class ChatUIKitRow @JvmOverloads constructor(
     private fun updateSendMessageStatus() {
         message?.run {
             if (isSend()) {
-                // update sent and delivered status
-                deliveredView?.let {
-                    it.visibility = View.INVISIBLE
-                    if (isSuccess()) {
-                        it.setCompoundDrawablesWithIntrinsicBounds(
-                            null,
-                            null,
-                            ContextCompat.getDrawable(
-                                context,
-                                R.drawable.uikit_msg_status_sent
-                            ),
-                            null
-                        )
-                        it.visibility = VISIBLE
+                // The delivered tick is no longer shown, read status is displayed instead.
+                deliveredView?.visibility = View.GONE
+                ackedView?.let { ack ->
+                    if (!isSuccess()) {
+                        ack.visibility = View.INVISIBLE
+                        return@let
                     }
-                    if (ChatClient.getInstance().options.requireDeliveryAck && isDelivered) {
-                        it.setCompoundDrawablesWithIntrinsicBounds(
-                            null,
-                            null,
-                            ContextCompat.getDrawable(
-                                getContext(),
-                                R.drawable.uikit_msg_status_received
-                            ),
-                            null
-                        )
-                        it.visibility = VISIBLE
-                    }
-                }
-                // update acked status
-                ackedView?.let {
-                    it.visibility = View.INVISIBLE
-                    if (isSuccess() && isPeerRead) {
-                        deliveredView?.visibility = View.INVISIBLE
-                        it.visibility = VISIBLE
+                    if (chatType === ChatType.GroupChat) {
+                        showGroupReadStatus(this, ack)
+                    } else {
+                        showSingleReadStatus(this, ack)
                     }
                 }
                 if (isSuccess()) {
@@ -231,6 +210,63 @@ abstract class ChatUIKitRow @JvmOverloads constructor(
                 setSendMessageFailStatus()
             }
         }
+    }
+
+    /**
+     * Show the read status of a single chat message with the same capsule
+     * style as group chat, but without a number:
+     * hollow blue capsule for unread, gray circle with a check for read.
+     */
+    private fun showSingleReadStatus(msg: ChatMessage, ack: TextView) {
+        if (msg.isPeerRead) {
+            ack.setBackgroundResource(R.drawable.uikit_msg_status_all_read)
+        } else {
+            val color = context.resources.getColor(R.color.ease_chat_read_receipt_color, context.theme)
+            val pill = ContextCompat.getDrawable(context, R.drawable.uikit_msg_status_read_circle)
+                ?.mutate() as? GradientDrawable
+            pill?.setStroke(context.resources.getDimensionPixelSize(R.dimen.ease_size_1), color)
+            ack.background = pill
+        }
+        ack.text = ""
+        ack.visibility = View.VISIBLE
+    }
+
+    /**
+     * Show the read status of a group chat message with a capsule style:
+     * hollow capsule for 0 read, number for partial read, check mark for all read.
+     * All read is shown in gray, otherwise in blue.
+     */
+    private fun showGroupReadStatus(msg: ChatMessage, ack: TextView) {
+        if (!msg.isNeedReadReceipt) {
+            ack.visibility = View.INVISIBLE
+            return
+        }
+        val group = runCatching {
+            ChatClient.getInstance().groupManager().getGroup(msg.conversationId())
+        }.getOrNull()
+        // Total readers = group members excluding the sender.
+        val total = (group?.memberCount ?: 0) - 1
+        if (total <= 0) {
+            ack.visibility = View.INVISIBLE
+            return
+        }
+        val count = msg.readReceiptCount()
+        val allRead = count >= total && total > 0
+        if (allRead) {
+            // All read: thin gray circle with a check mark inside, same as iOS.
+            ack.setBackgroundResource(R.drawable.uikit_msg_status_all_read)
+            ack.text = ""
+            ack.visibility = View.VISIBLE
+            return
+        }
+        val color = context.resources.getColor(R.color.ease_chat_read_receipt_color, context.theme)
+        val pill = ContextCompat.getDrawable(context, R.drawable.uikit_msg_status_read_circle)
+            ?.mutate() as? GradientDrawable
+        pill?.setStroke(context.resources.getDimensionPixelSize(R.dimen.ease_size_1), color)
+        ack.background = pill
+        ack.setTextColor(color)
+        ack.text = if (count > 0) count.toString() else ""
+        ack.visibility = View.VISIBLE
     }
 
     private fun updateMessageErrorStatus() {
@@ -306,6 +342,17 @@ abstract class ChatUIKitRow @JvmOverloads constructor(
         statusView?.let {
             it.setOnClickListener {
                 itemClickListener?.onResendClick(message)
+            }
+        }
+        ackedView?.let {
+            it.setOnClickListener {
+                message?.let { msg ->
+                    // Only sent group messages show the read-receipt entry.
+                    if (isSend() && msg.chatType === ChatType.GroupChat
+                        && msg.status() == ChatMessageStatus.SUCCESS) {
+                        itemClickListener?.onReadReceiptClick(msg)
+                    }
+                }
             }
         }
         userAvatarView?.let {
