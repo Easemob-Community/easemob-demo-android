@@ -39,6 +39,8 @@ import com.hyphenate.easeui.common.ChatRecallMessageInfo
 import com.hyphenate.easeui.common.ChatTextMessageBody
 import com.hyphenate.easeui.common.ChatThread
 import com.hyphenate.easeui.common.ChatType
+import com.hyphenate.easeui.common.ChatUIKitConstant
+import com.hyphenate.easeui.common.ChatValueCallback
 import com.hyphenate.easeui.common.bus.ChatUIKitFlowBus
 import com.hyphenate.easeui.common.enums.ChatUIKitFinishReason
 import com.hyphenate.easeui.common.extensions.hideSoftKeyboard
@@ -646,6 +648,9 @@ class ChatUIKitLayout @JvmOverloads constructor(
                             }else{
                                 chatMessageTranslationController.showTranslationMessage(message)
                             }
+                        }
+                        R.id.action_chat_voice_to_text -> {
+                            voiceToText(message)
                         }
                         R.id.action_chat_forward -> {
                             ChatUIKitMessageForwardDialogFragment().apply {
@@ -1335,6 +1340,53 @@ class ChatUIKitLayout @JvmOverloads constructor(
                 override fun onProgress(progress: Int, status: String?) {}
             })
         }
+    }
+
+    /**
+     * Voice to text, aligned with iOS: when the message already has a
+     * transcription this toggles its visibility (再次长按收起/展开); otherwise it
+     * calls the value-added recognition API and persists the result in the
+     * message extension so it survives reloads.
+     */
+    private fun voiceToText(message: ChatMessage?) {
+        val msg = message ?: return
+        if (msg.type !== ChatMessageType.VOICE) return
+        val transcribed = msg.getStringAttribute(
+            ChatUIKitConstant.MESSAGE_ATTR_VOICE_TO_TEXT, null
+        )
+        if (!transcribed.isNullOrEmpty()) {
+            val hidden = msg.getBooleanAttribute(
+                ChatUIKitConstant.MESSAGE_ATTR_VOICE_TO_TEXT_HIDDEN, false
+            )
+            msg.setAttribute(ChatUIKitConstant.MESSAGE_ATTR_VOICE_TO_TEXT_HIDDEN, !hidden)
+            refresh(msg)
+            return
+        }
+        if (!msg.isSuccess()) return
+        context.showToast(R.string.uikit_voice_to_text_recognizing)
+        ChatClient.getInstance().chatManager().voiceMessageToText(msg,
+            object : ChatValueCallback<String> {
+                override fun onSuccess(value: String?) {
+                    context.mainScope().launch {
+                        if (value.isNullOrEmpty()) {
+                            context.showToast(R.string.uikit_voice_to_text_empty)
+                        } else {
+                            msg.setAttribute(ChatUIKitConstant.MESSAGE_ATTR_VOICE_TO_TEXT, value)
+                            ChatClient.getInstance().chatManager().updateMessage(msg)
+                            refresh(msg)
+                        }
+                    }
+                }
+
+                override fun onError(error: Int, errorMsg: String?) {
+                    context.mainScope().launch {
+                        ChatLog.e(TAG, "voiceMessageToText failed: $error $errorMsg")
+                        context.showToast(
+                            errorMsg ?: context.getString(R.string.uikit_voice_to_text_failed)
+                        )
+                    }
+                }
+            })
     }
 
     private fun refreshMessages(messages: List<ChatMessage>?) {

@@ -233,6 +233,7 @@
     <string name="demo_chat_fraud_title">Demo only | Data cleared daily at 00:00</string>
     <string name="demo_chat_fraud_prefix">Do not trust requests for transfers or prize claims. Be cautious of unknown callers and report suspicious activity immediately.</string>
     <string name="demo_chat_fraud_report">Report</string>
+    <string name="demo_copy_success">Copied</string>
     <string name="demo_chat_fraud_report_toast">Thank you for your report and we will deal with it as soon as possible.</string>
 
     <string name="demo_check_voip">The VoIP call function has been enabled!</string>

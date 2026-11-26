@@ -78,6 +78,11 @@
 
     <!-- chat menu -->
     <string name="uikit_action_reply">回复</string>
+    <string name="uikit_voice_to_text_recognizing">识别中&#8230;</string>
+    <string name="uikit_action_voice_to_text">转文字</string>
+    <string name="uikit_action_voice_to_text_hide">取消转文字</string>
+    <string name="uikit_voice_to_text_empty">没有检测的声音</string>
+    <string name="uikit_voice_to_text_failed">语音转文字失败</string>
     <string name="uikit_action_copy">复制</string>
     <string name="uikit_action_forward">转发</string>
     <string name="uikit_action_recall">撤回</string>

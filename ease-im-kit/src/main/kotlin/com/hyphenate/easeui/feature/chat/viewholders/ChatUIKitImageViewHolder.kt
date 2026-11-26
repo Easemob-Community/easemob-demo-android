@@ -37,14 +37,7 @@ class ChatUIKitImageViewHolder(itemView: View) : ChatUIKitRowViewHolder(itemView
                 imgUri
             )
         )
-        if (ChatUIKitFileUtils.isFileExistByUri(mContext, imgUri)) {
-            ChatUIKitShowBigImageActivity.actionStart(mContext, imgUri)
-        } else {
-            // The local full size pic does not exist yet.
-            // ShowBigImage needs to download it from the server
-            // first
-            ChatUIKitShowBigImageActivity.actionStart(mContext, message?.msgId, imgBody?.fileName)
-        }
+        ChatUIKitShowBigImageActivity.actionStart(mContext, message)
     }
 
     override fun handleReceiveMessage(message: ChatMessage?) {

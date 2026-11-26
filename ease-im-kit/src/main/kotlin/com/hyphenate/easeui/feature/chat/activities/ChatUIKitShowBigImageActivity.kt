@@ -85,10 +85,14 @@ class ChatUIKitShowBigImageActivity : ChatUIKitBaseActivity<UikitActivityShowBig
         ChatLog.d(TAG, "show big msgId:$msgId")
 
         when {
+            // An image message always goes through the message path so the
+            // original/thumbnail toggle is available, whether or not the
+            // original is already downloaded.
+            msgId != null -> setupImageMessage()
+            intent.getParcelableExtra<ChatMessage>("msg") != null -> setupImageMessage()
             // A local file is passed directly: show it, nothing to download.
             ChatUIKitFileUtils.isFileExistByUri(this, uri) -> display(uri)
             !TextUtils.isEmpty(emojiIconId) -> showBigExpression(emojiIconId)
-            msgId != null -> setupImageMessage()
             else -> binding.image.setImageResource(default_res)
         }
 
@@ -122,7 +126,7 @@ class ChatUIKitShowBigImageActivity : ChatUIKitBaseActivity<UikitActivityShowBig
      * original image download like iOS.
      */
     private fun setupImageMessage() {
-        var msg: ChatMessage? = ChatClient.getInstance().chatManager().getMessage(msgId)
+        var msg: ChatMessage? = msgId?.let { ChatClient.getInstance().chatManager().getMessage(it) }
         if (msg == null) {
             msg = intent.getParcelableExtra("msg")
             if (msg == null) {
@@ -144,6 +148,8 @@ class ChatUIKitShowBigImageActivity : ChatUIKitBaseActivity<UikitActivityShowBig
             // The original is already on disk (sent image or downloaded before).
             showingOriginal = true
             display(body.localUri)
+            // Keep the toggle so users can switch back to the thumbnail.
+            showOriginalButton(R.string.uikit_view_thumbnail_image)
         } else {
             // Requirement 1: default to the thumbnail, and offer the original
             // download with the bottom button.
@@ -392,6 +398,7 @@ class ChatUIKitShowBigImageActivity : ChatUIKitBaseActivity<UikitActivityShowBig
 
         fun actionStart(context: Context, message: ChatMessage?) {
             val intent = Intent(context, ChatUIKitShowBigImageActivity::class.java)
+            intent.putExtra("messageId", message?.msgId)
             intent.putExtra("msg", message)
             ChatUIKitClient.getCustomActivityRoute()?.getActivityRoute(intent.clone() as Intent)?.let {
                 if (it.hasRoute()) {

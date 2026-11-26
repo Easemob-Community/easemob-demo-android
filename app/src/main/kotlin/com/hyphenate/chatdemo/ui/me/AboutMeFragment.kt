@@ -95,7 +95,6 @@ class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View
     override fun initView(savedInstanceState: Bundle?) {
         super.initView(savedInstanceState)
         initPresence()
-        initStatus()
         binding?.run {
             itemSdkVersion.setContent("Easemob SDK v${BuildConfig.VERSION_NAME}")
             itemUikitVersion.setContent("Easemob UIKit v${BuildConfig.VERSION_NAME}")
@@ -224,15 +223,6 @@ class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View
         }
     }
 
-    private fun initStatus(){
-        val isSilent = ChatUIKitClient.checkMutedConversationList(ChatClient.getInstance().currentUser)
-        if (isSilent) {
-            binding?.icNotice?.visibility = View.VISIBLE
-        }else{
-            binding?.icNotice?.visibility = View.GONE
-        }
-    }
-
     private fun logout() {
         lifecycleScope.launch {
             loginViewModel.logout()
@@ -338,19 +328,16 @@ class AboutMeFragment: ChatUIKitBaseFragment<DemoFragmentAboutMeBinding>(), View
                 showCancelAccountDialog()
             }
             R.id.tv_number -> {
-                val indexOfSpace = binding?.tvNumber?.text?.indexOf(":")
-                indexOfSpace?.let {
-                    if (indexOfSpace != -1) {
-                        val substring = binding?.tvNumber?.text?.substring(indexOfSpace + 1)
-                        clipboard.setPrimaryClip(
-                            ClipData.newPlainText(
-                                null,
-                                substring
-                            )
+                val userId = ChatClient.getInstance().currentUser
+                if (!userId.isNullOrEmpty()) {
+                    clipboard.setPrimaryClip(
+                        ClipData.newPlainText(
+                            null,
+                            userId
                         )
-                    }
+                    )
+                    mContext.showToast(R.string.demo_copy_success)
                 }
-
             }
             else -> {}
         }

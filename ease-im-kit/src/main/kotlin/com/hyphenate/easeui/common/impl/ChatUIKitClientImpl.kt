@@ -26,6 +26,7 @@ import com.hyphenate.easeui.common.enums.ChatUIKitCacheType
 import com.hyphenate.easeui.common.extensions.isMainProcess
 import com.hyphenate.easeui.common.helper.ChatUIKitNotifier
 import com.hyphenate.easeui.common.helper.ChatUIKitPreferenceManager
+import com.hyphenate.easeui.common.utils.ChatUIKitHeifDecoderFactory
 import com.hyphenate.easeui.common.impl.ValueCallbackImpl
 import com.hyphenate.easeui.interfaces.IChatUIKitClient
 import com.hyphenate.easeui.interfaces.OnEventResultListener
@@ -72,6 +73,7 @@ internal class ChatUIKitClientImpl: IChatUIKitClient {
             .components {
                 if ( SDK_INT >= 28 ) {
                     add(ImageDecoderDecoder.Factory())
+                    add(ChatUIKitHeifDecoderFactory())
                 } else {
                     add(GifDecoder.Factory())
                 }

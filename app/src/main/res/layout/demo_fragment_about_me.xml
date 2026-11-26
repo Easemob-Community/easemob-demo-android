@@ -38,25 +38,15 @@
                 app:layout_constraintHorizontal_chainStyle="packed"
                 app:layout_constraintStart_toEndOf="@id/ep_presence"
                 app:layout_constraintTop_toTopOf="@id/ep_presence"
-                app:layout_constraintEnd_toStartOf="@+id/ic_notice" />
-
-            <com.hyphenate.easeui.widget.ChatUIKitImageView
-                android:id="@+id/ic_notice"
-                android:visibility="gone"
-                android:src="@drawable/uikit_do_not_disturb"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginStart="4dp"
-                app:layout_constraintHorizontal_chainStyle="packed"
-                app:layout_constraintTop_toTopOf="@+id/tv_name"
-                app:layout_constraintBottom_toBottomOf="@+id/tv_name"
-                app:layout_constraintStart_toEndOf="@+id/tv_name" />
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0" />
 
             <TextView
                 android:id="@+id/tv_sign"
                 style="@style/ease_detail_layout_subtitle2"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:drawableEnd="@null"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:paddingVertical="2dp"

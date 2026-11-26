@@ -3,14 +3,18 @@ package com.hyphenate.easeui.widget.chatrow
 import android.content.Context
 import android.graphics.drawable.AnimationDrawable
 import android.util.AttributeSet
+import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import com.hyphenate.easeui.R
 import com.hyphenate.easeui.common.ChatClient
 import com.hyphenate.easeui.common.ChatDownloadStatus
 import com.hyphenate.easeui.common.ChatLog
 import com.hyphenate.easeui.common.ChatMessage
+import com.hyphenate.easeui.common.ChatUIKitConstant
 import com.hyphenate.easeui.common.ChatVoiceMessageBody
 import com.hyphenate.easeui.common.extensions.isSend
 import com.hyphenate.easeui.common.helper.ChatUIKitRowVoicePlayer
@@ -103,6 +107,45 @@ open class ChatUIKitRowVoice @JvmOverloads constructor(
                 startVoicePlayAnimation()
             }
         }
+        renderVoiceToText()
+    }
+
+    override fun onMessageSuccess() {
+        super.onMessageSuccess()
+        // The transcription visibility may have been toggled via the long-press
+        // menu (payload refresh only runs status updates, so re-render here).
+        renderVoiceToText()
+    }
+
+    /**
+     * Show the voice-to-text transcription below the bubble, aligned with iOS:
+     * the recognized text is kept in the message extension, and a hidden flag
+     * collapses/expands it when the user long-presses the voice message again.
+     */
+    private fun renderVoiceToText() {
+        val container = llBottomBubble ?: return
+        val existing = container.findViewById<View>(R.id.voice_to_text_container)
+        val text = message?.getStringAttribute(
+            ChatUIKitConstant.MESSAGE_ATTR_VOICE_TO_TEXT, null
+        )
+        val hidden = message?.getBooleanAttribute(
+            ChatUIKitConstant.MESSAGE_ATTR_VOICE_TO_TEXT_HIDDEN, false
+        ) == true
+        if (text.isNullOrEmpty() || hidden) {
+            existing?.let { container.removeView(it) }
+            return
+        }
+        val view = existing ?: LayoutInflater.from(context)
+            .inflate(R.layout.uikit_row_voice_to_text, container, false)
+            .also {
+                // Sent rows: the bottom container spans to the parent start, so
+                // pin the card to its trailing end to sit under the sent bubble.
+                val params = it.layoutParams as? LinearLayout.LayoutParams
+                params?.gravity = if (isSender) Gravity.END else Gravity.START
+                it.layoutParams = params
+                addChildToBottomBubbleLayout(it)
+            }
+        view.findViewById<TextView>(R.id.tv_voice_to_text).text = text
     }
 
     /**

@@ -78,6 +78,11 @@
 
     <!-- chat menu -->
     <string name="uikit_action_reply">Reply</string>
+    <string name="uikit_voice_to_text_recognizing">Recognizing&#8230;</string>
+    <string name="uikit_action_voice_to_text">Voice to text</string>
+    <string name="uikit_action_voice_to_text_hide">Hide text</string>
+    <string name="uikit_voice_to_text_empty">No speech detected</string>
+    <string name="uikit_voice_to_text_failed">Voice recognition failed</string>
     <string name="uikit_action_copy">Copy</string>
     <string name="uikit_action_forward">Forward</string>
     <string name="uikit_action_recall">Recall</string>

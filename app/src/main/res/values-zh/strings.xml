@@ -232,6 +232,7 @@
     <string name="demo_chat_fraud_title">本 Demo 仅供体验 | 数据每日 00:00 清除</string>
     <string name="demo_chat_fraud_prefix">请勿轻信转账、汇款、中奖等信息，谨慎接听陌生来电，谨防诈骗。发现可疑情况请立即举报。</string>
     <string name="demo_chat_fraud_report">点我举报</string>
+    <string name="demo_copy_success">已复制</string>
     <string name="demo_chat_fraud_report_toast">感谢您的举报，我们将尽快处理。</string>
 
     <string name="demo_check_voip">VoIP通话功能已启用！</string>

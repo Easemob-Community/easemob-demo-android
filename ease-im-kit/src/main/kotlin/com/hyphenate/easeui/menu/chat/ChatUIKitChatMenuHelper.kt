@@ -103,6 +103,11 @@ class ChatUIKitChatMenuHelper: ChatUIKitMenuHelper() {
             if (type == ChatMessageType.TXT && it.status() === ChatMessageStatus.SUCCESS){
                 findItemVisible(R.id.action_chat_translation,ChatUIKitClient.getConfig()?.chatConfig?.enableTranslationMessage == true)
             }
+            // Voice to text, aligned with iOS: only successful voice messages.
+            findItemVisible(
+                R.id.action_chat_voice_to_text,
+                type == ChatMessageType.VOICE && it.status() === ChatMessageStatus.SUCCESS
+            )
             findItemVisible(R.id.action_chat_forward, it.status() === ChatMessageStatus.SUCCESS)
             findItemVisible(R.id.action_chat_multi_select, it.status() === ChatMessageStatus.SUCCESS)
             if (it.isChatThreadMessage){
@@ -139,6 +144,16 @@ class ChatUIKitChatMenuHelper: ChatUIKitMenuHelper() {
             }
         }
         getContext()?.run {
+            // Voice to text, aligned with iOS: the title toggles between
+            // "转文字" and "取消转文字" depending on the transcription state.
+            val voiceToTextTitle = if (isVoiceToTextShown()) {
+                getString(R.string.uikit_action_voice_to_text_hide)
+            } else {
+                getString(R.string.uikit_action_voice_to_text)
+            }
+            addItemMenu(R.id.action_chat_voice_to_text,
+                (getTargetMenuIndex(R.id.action_chat_reply) + 1 ) * 10 + 3,
+                voiceToTextTitle, resourceId = R.drawable.uikit_chat_item_menu_voice_text)
             // add forward menu
             addItemMenu(R.id.action_chat_forward, (getTargetMenuIndex(R.id.action_chat_copy) + 1 ) * 10 + 5
                 , getString(R.string.uikit_action_forward), resourceId = R.drawable.uikit_chat_item_menu_forward)
@@ -163,6 +178,18 @@ class ChatUIKitChatMenuHelper: ChatUIKitMenuHelper() {
             if (item == id) return index
         }
         return MENU_ITEM_IDS.size
+    }
+
+    /**
+     * Whether the voice message already shows its transcription, used to
+     * toggle the menu title between "转文字" and "取消转文字" like iOS.
+     */
+    private fun isVoiceToTextShown(): Boolean {
+        val text = message?.getStringAttribute(ChatUIKitConstant.MESSAGE_ATTR_VOICE_TO_TEXT, null)
+        if (text.isNullOrEmpty()) return false
+        return message?.getBooleanAttribute(
+            ChatUIKitConstant.MESSAGE_ATTR_VOICE_TO_TEXT_HIDDEN, false
+        ) != true
     }
 
     private fun isShowTranslation():Boolean{

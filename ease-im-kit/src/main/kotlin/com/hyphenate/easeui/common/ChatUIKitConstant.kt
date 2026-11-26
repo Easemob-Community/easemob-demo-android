@@ -67,6 +67,10 @@ object ChatUIKitConstant {
     // translation status
     const val TRANSLATION_STATUS = "chat_uikit_translation_status"
 
+    // Voice to text (aligned with iOS extension keys).
+    const val MESSAGE_ATTR_VOICE_TO_TEXT = "EaseChatUIKit_voice_to_text"
+    const val MESSAGE_ATTR_VOICE_TO_TEXT_HIDDEN = "EaseChatUIKit_voice_to_text_hidden"
+
     const val API_ASYNC_ADD_CONTACT  = "asyncAddContact"
     const val API_TRANSLATION_MESSAGE ="translationMessage"
 

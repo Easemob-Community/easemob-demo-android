@@ -52,6 +52,8 @@
     <item name="action_chat_long_click" type="id"/>
     <!--translation-->
     <item name="action_chat_translation" type="id"/>
+    <!--voice to text-->
+    <item name="action_chat_voice_to_text" type="id"/>
     <!--forward-->
     <item name="action_chat_forward" type="id"/>
     <!--multi select-->
